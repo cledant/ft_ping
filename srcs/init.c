@@ -15,7 +15,7 @@ dbg_printListAddrInfo(const struct addrinfo *dest)
                dest->ai_canonname);
         dest = dest->ai_next;
     }
-};
+}
 
 void
 dbg_printAddrInfo(const struct addrinfo *dest)
@@ -28,7 +28,7 @@ dbg_printAddrInfo(const struct addrinfo *dest)
     printf("IP = %s | Name = %s\n----------\n",
            inet_ntoa(saddr->sin_addr),
            dest->ai_canonname);
-};
+}
 
 uint8_t
 getValidIp(const struct addrinfo *list, struct addrinfo **dest)
@@ -66,12 +66,27 @@ resolveAddr(const char *addr)
 }
 
 int32_t
-initSocket()
+initSocket(const t_option *opt)
 {
     int32_t sock = -1;
 
     if ((sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) < 3) {
+        printf("%s\n", "Error initializing socket : maybe you should sudo");
+        return (-1);
+    }
+    // Timeout
+    if (setsockopt(
+          sock, SOL_IP, SO_RCVTIMEO, &opt->timeout, sizeof(struct timeval))) {
+        printf("%s\n", "Error setting timeout");
+        close(sock);
+        return (-1);
+    }
+    // TTL
+    if (setsockopt(sock, SOL_IP, IP_TTL, &opt->ttl, sizeof(int32_t))) {
+        printf("%s\n", "Error setting ttl");
+        close(sock);
         return (-1);
     }
     return (sock);
 }
+

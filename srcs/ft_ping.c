@@ -3,13 +3,23 @@
 static void
 cleanEnv(t_env *e)
 {
-    freeaddrinfo(e->dest);
+    if (e->resolved) {
+        freeaddrinfo(e->dest);
+    }
+    if (e->socket) {
+        close(e->socket);
+    }
 }
 
 int
 main(int argc, char **argv)
 {
-    t_env e = { -1, NULL, NULL };
+    t_env e = {
+        -1,
+        NULL,
+        NULL,
+        { TTL_DEFAULT, { TIMEOUT_DEFAULT, 0 }, ICMP_PACKET_SIZE_DEFAULT }
+    };
 
     if (argc != 2) {
         printf("Usage : %s destination\n", argv[0]);
@@ -28,11 +38,12 @@ main(int argc, char **argv)
     }
     printf("%s\n", "Selected IP : ");
     dbg_printAddrInfo(e.dest);
-    if ((e.socket = initSocket()) < 3) {
-        printf("%s\n", "Error initializing socket : maybe you should sudo");
+    if ((e.socket = initSocket(&e.opt)) < 3) {
         cleanEnv(&e);
         return (-1);
     }
+    signal(SIGINT, stopLoop);
+    loop(&e);
     cleanEnv(&e);
     return (0);
 }
