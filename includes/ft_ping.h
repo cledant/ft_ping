@@ -2,6 +2,7 @@
 #define FT_PING_H
 
 #include <arpa/inet.h>
+#include <linux/icmp.h>
 #include <linux/ip.h>
 #include <netdb.h>
 #include <signal.h>
@@ -10,22 +11,23 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <string.h>
 
 #define TIMEOUT_DEFAULT 1
 #define TTL_DEFAULT 32
-#define ICMP_PACKET_SIZE_DEFAULT 64
+#define ICMP_MSG_SIZE_DEFAULT 56
 
-typedef struct s_ping_stat
+typedef struct s_pingStat
 {
-    uint8_t loop;
-    uint64_t loopNbr;
-} t_ping_stat;
+    uint16_t loop;
+    uint16_t loopNbr;
+} t_pingStat;
 
 typedef struct s_option
 {
     int32_t ttl;
     struct timeval timeout;
-    uint32_t imcp;
+    uint16_t icmpMsgSize;
 } t_option;
 
 typedef struct s_env
@@ -37,16 +39,17 @@ typedef struct s_env
 } t_env;
 
 // init.c
-void dbg_printListAddrInfo(const struct addrinfo *dest);
-void dbg_printAddrInfo(const struct addrinfo *dest);
-struct addrinfo *resolveAddr(const char *addr);
-uint8_t getValidIp(const struct addrinfo *list, struct addrinfo **dest);
-int32_t initSocket(const t_option *opt);
+void dbg_printListAddrInfo(struct addrinfo const *dest);
+void dbg_printAddrInfo(struct addrinfo const *dest);
+uint8_t getValidIp(struct addrinfo const *list, struct addrinfo **dest);
+struct addrinfo *resolveAddr(char const *addr);
+int32_t initSocket(t_option const *opt);
 
 // loop.c
-t_ping_stat *getPingStat();
+t_pingStat *getPingStat();
 void stopLoop(int32_t sig);
-uint8_t initIcmpPacket(struct iphdr *packet);
-void loop(const t_env *e);
+void setIcmpHdr(struct icmphdr *hdr, uint8_t const *msg, uint16_t seq);
+uint16_t checksum();
+void loop(t_env const *e);
 
 #endif

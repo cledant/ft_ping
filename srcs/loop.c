@@ -1,9 +1,10 @@
 #include "ft_ping.h"
+#include <linux/icmp.h>
 
-t_ping_stat *
+t_pingStat *
 getPingStat()
 {
-    static t_ping_stat ps = { 1, 0 };
+    static t_pingStat ps = { 1, 0 };
 
     return (&ps);
 }
@@ -17,23 +18,38 @@ stopLoop(int signal)
     getPingStat()->loop = 0;
 }
 
-uint8_t
-initIcmpPacket(struct iphdr *packet)
+void
+setIcmpHdr(struct icmphdr *hdr, uint8_t const *msg, uint16_t seq)
 {
-    (void)packet;
+    (void)msg;
+    hdr->type = ICMP_ECHO;
+    hdr->code = 0;
+    hdr->un.echo.id = getpid();
+    hdr->un.echo.sequence = seq;
+    hdr->checksum = checksum();
+}
+
+uint16_t
+checksum()
+{
     return (0);
 }
 
 void
-loop(const t_env *e)
+loop(t_env const *e)
 {
-    t_ping_stat *ps = getPingStat();
-    (void)e;
+    t_pingStat *ps = getPingStat();
+    uint8_t packet[e->opt.icmpMsgSize + sizeof(struct icmphdr)];
+    uint8_t *msg = packet + sizeof(struct icmphdr);
 
     while (ps->loop) {
+        if (e->opt.icmpMsgSize) {
+            memset(msg, 42, e->opt.icmpMsgSize);
+        }
+        setIcmpHdr((struct icmphdr *)packet, msg, ps->loopNbr);
         sleep(1);
         printf("%s\n", "Loop....");
         ++ps->loopNbr;
     }
-    printf("Loop nbrs = %lu\n", ps->loopNbr);
+    printf("Loop nbrs = %u\n", ps->loopNbr);
 }

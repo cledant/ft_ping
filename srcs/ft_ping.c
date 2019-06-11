@@ -18,7 +18,7 @@ main(int argc, char **argv)
         -1,
         NULL,
         NULL,
-        { TTL_DEFAULT, { TIMEOUT_DEFAULT, 0 }, ICMP_PACKET_SIZE_DEFAULT }
+        { TTL_DEFAULT, { TIMEOUT_DEFAULT, 0 }, ICMP_MSG_SIZE_DEFAULT }
     };
 
     if (argc != 2) {

@@ -1,7 +1,7 @@
 #include "ft_ping.h"
 
 void
-dbg_printListAddrInfo(const struct addrinfo *dest)
+dbg_printListAddrInfo(struct addrinfo const *dest)
 {
     if (!dest) {
         printf("%s\n", "Nothing to print");
@@ -18,7 +18,7 @@ dbg_printListAddrInfo(const struct addrinfo *dest)
 }
 
 void
-dbg_printAddrInfo(const struct addrinfo *dest)
+dbg_printAddrInfo(struct addrinfo const *dest)
 {
     if (!dest) {
         printf("%s\n", "Nothing to print");
@@ -31,7 +31,7 @@ dbg_printAddrInfo(const struct addrinfo *dest)
 }
 
 uint8_t
-getValidIp(const struct addrinfo *list, struct addrinfo **dest)
+getValidIp(struct addrinfo const *list, struct addrinfo **dest)
 {
     if (!dest || !list) {
         return (1);
@@ -48,7 +48,7 @@ getValidIp(const struct addrinfo *list, struct addrinfo **dest)
 }
 
 struct addrinfo *
-resolveAddr(const char *addr)
+resolveAddr(char const *addr)
 {
     struct addrinfo *dest = NULL;
     struct addrinfo hints = { 0 };
@@ -66,7 +66,7 @@ resolveAddr(const char *addr)
 }
 
 int32_t
-initSocket(const t_option *opt)
+initSocket(t_option const *opt)
 {
     int32_t sock = -1;
 
@@ -89,4 +89,3 @@ initSocket(const t_option *opt)
     }
     return (sock);
 }
-
