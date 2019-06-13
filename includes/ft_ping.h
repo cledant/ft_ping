@@ -7,14 +7,14 @@
 #include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <string.h>
 
 #define TIMEOUT_DEFAULT 1
-#define TTL_DEFAULT 32
+#define TTL_DEFAULT 52
 #define ICMP_MSG_SIZE_DEFAULT 56
 
 typedef struct s_pingStat
@@ -48,8 +48,8 @@ int32_t initSocket(t_option const *opt);
 // loop.c
 t_pingStat *getPingStat();
 void stopLoop(int32_t sig);
-void setIcmpHdr(struct icmphdr *hdr, uint8_t const *msg, uint16_t seq);
-uint16_t checksum();
+void setIcmpHdr(struct icmphdr *hdr, uint16_t seq);
+uint16_t computeChecksum(uint16_t *ptr, uint16_t packetSize);
 void loop(t_env const *e);
 
 #endif

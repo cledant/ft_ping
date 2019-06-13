@@ -75,14 +75,17 @@ initSocket(t_option const *opt)
         return (-1);
     }
     // Timeout
-    if (setsockopt(
-          sock, SOL_IP, SO_RCVTIMEO, &opt->timeout, sizeof(struct timeval))) {
+    if (setsockopt(sock,
+                   SOL_SOCKET,
+                   SO_RCVTIMEO,
+                   &opt->timeout,
+                   sizeof(struct timeval))) {
         printf("%s\n", "Error setting timeout");
         close(sock);
         return (-1);
     }
     // TTL
-    if (setsockopt(sock, SOL_IP, IP_TTL, &opt->ttl, sizeof(int32_t))) {
+    if (setsockopt(sock, SOL_SOCKET, IP_TTL, &opt->ttl, sizeof(int32_t))) {
         printf("%s\n", "Error setting ttl");
         close(sock);
         return (-1);
