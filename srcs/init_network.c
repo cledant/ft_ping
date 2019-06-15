@@ -81,7 +81,7 @@ initSocket(t_option const *opt)
                    SO_RCVTIMEO,
                    &opt->timeout,
                    sizeof(struct timeval))) {
-        printf("%s\n", "Error setting timeout");
+        printf("%s\n", "Error setting timeout params");
         close(sock);
         return (-1);
     }
