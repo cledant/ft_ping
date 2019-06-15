@@ -43,6 +43,8 @@ typedef struct s_env
     int32_t socket;
     struct addrinfo *resolved;
     struct addrinfo *dest;
+    char fqdn[NI_MAXHOST];
+    char ip[INET_ADDRSTRLEN];
     t_option opt;
     uint32_t packetSize;
 } t_env;
@@ -56,21 +58,18 @@ typedef struct s_loopControl
 t_loopControl g_loopControl;
 
 // init_network.c
-void dbg_printListAddrInfo(struct addrinfo const *dest);
-void dbg_printAddrInfo(struct addrinfo const *dest);
 uint8_t getValidIp(struct addrinfo const *list, struct addrinfo **dest);
 struct addrinfo *resolveAddr(char const *addr);
+uint8_t getFqdn(char *fqdn, uint64_t fqdnSize, struct addrinfo const *addr);
 int32_t initSocket(t_option const *opt);
 
 // loop.c
-t_pingStat *getPingStat();
 void stopLoop(int32_t sig);
 void stopWait(int32_t sig);
 void loop(t_env const *e);
 
 // headers.c
 void setHdr(uint8_t *buff, t_option const *opt, uint64_t seq);
-void setIcmpHdr(struct icmphdr *hdr, uint16_t seq);
 uint16_t computeChecksum(uint16_t const *ptr, uint16_t packetSize);
 uint16_t swap_uint16(uint16_t val);
 

@@ -9,19 +9,13 @@ setHdr(uint8_t *buff, t_option const *opt, uint64_t seq)
     if (opt->icmpMsgSize) {
         memset(msg, 42, opt->icmpMsgSize);
     }
-    setIcmpHdr(icmpHdr, seq);
+    icmpHdr->type = ICMP_ECHO;
+    icmpHdr->code = 0;
+    icmpHdr->un.echo.id = swap_uint16(getpid());
+    icmpHdr->un.echo.sequence = swap_uint16(seq);
+    icmpHdr->checksum = 0;
     icmpHdr->checksum = computeChecksum(
       (uint16_t *)icmpHdr, opt->icmpMsgSize + sizeof(struct icmphdr));
-}
-
-void
-setIcmpHdr(struct icmphdr *hdr, uint16_t seq)
-{
-    hdr->type = ICMP_ECHO;
-    hdr->code = 0;
-    hdr->un.echo.id = swap_uint16(getpid());
-    hdr->un.echo.sequence = swap_uint16(seq);
-    hdr->checksum = 0;
 }
 
 uint16_t

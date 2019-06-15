@@ -1,36 +1,5 @@
 #include "ft_ping.h"
 
-void
-dbg_printListAddrInfo(struct addrinfo const *dest)
-{
-    if (!dest) {
-        printf("%s\n", "Nothing to print");
-        return;
-    }
-    printf("%s\n", "Printing Resolved AddrInfo");
-    while (dest) {
-        struct sockaddr_in *saddr = (struct sockaddr_in *)dest->ai_addr;
-        printf("IP = %s | Name = %s\n----------\n",
-               inet_ntoa(saddr->sin_addr),
-               dest->ai_canonname);
-        dest = dest->ai_next;
-    }
-}
-
-void
-dbg_printAddrInfo(struct addrinfo const *dest)
-{
-    if (!dest) {
-        printf("%s\n", "Nothing to print");
-        return;
-    }
-    struct sockaddr_in *saddr = (struct sockaddr_in *)dest->ai_addr;
-    printf("IP = %s | Name = %s | Port = %d\n----------\n",
-           inet_ntoa(saddr->sin_addr),
-           dest->ai_canonname,
-           saddr->sin_port);
-}
-
 uint8_t
 getValidIp(struct addrinfo const *list, struct addrinfo **dest)
 {
@@ -38,8 +7,7 @@ getValidIp(struct addrinfo const *list, struct addrinfo **dest)
         return (1);
     }
     while (list) {
-        struct sockaddr_in *saddr = (struct sockaddr_in *)list->ai_addr;
-        if (saddr->sin_addr.s_addr) {
+        if (((struct sockaddr_in *)list->ai_addr)->sin_addr.s_addr) {
             *dest = (struct addrinfo *)list;
             return (0);
         }
@@ -57,13 +25,27 @@ resolveAddr(char const *addr)
     if (!addr) {
         return (NULL);
     }
-    hints.ai_flags = AF_INET;
+    hints.ai_family = AF_INET;
+    hints.ai_flags = AI_CANONNAME;
     hints.ai_socktype = SOCK_RAW;
     hints.ai_protocol = IPPROTO_ICMP;
     if (getaddrinfo(addr, NULL, &hints, &dest)) {
         return (NULL);
     }
     return (dest);
+}
+
+uint8_t
+getFqdn(char *fqdn, uint64_t fqdnSize, struct addrinfo const *addr)
+{
+    if (!addr || !fqdn) {
+        return (1);
+    }
+    if (getnameinfo(
+          addr->ai_addr, addr->ai_addrlen, fqdn, fqdnSize, NULL, 0, 0)) {
+        return (1);
+    }
+    return (0);
 }
 
 int32_t

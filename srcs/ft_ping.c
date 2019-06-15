@@ -12,20 +12,42 @@ cleanEnv(t_env *e)
 }
 
 static uint8_t
-initEnv(t_env *e)
+resolveAddrToPing(t_env *e)
 {
     if (!(e->resolved = resolveAddr(e->opt.toPing))) {
         printf("ft_ping : %s : Name or service not known", e->opt.toPing);
-        return (-1);
+        return (1);
     }
     if (getValidIp(e->resolved, &e->dest)) {
-        printf("ft_ping : no valid IP for name or service");
+        printf("ft_ping : No valid ip for name or service");
         cleanEnv(e);
-        return (-1);
+        return (1);
+    }
+    if (!inet_ntop(AF_INET,
+                   &((struct sockaddr_in *)e->dest->ai_addr)->sin_addr,
+                   e->ip,
+                   INET_ADDRSTRLEN)) {
+        printf("ft_ping : Ip conversion failed");
+        cleanEnv(e);
+        return (1);
+    }
+    if (getFqdn(e->fqdn, NI_MAXHOST, e->dest)) {
+        printf("ft_ping : Can't resolve Fqdn");
+        cleanEnv(e);
+        return (1);
+    }
+    return (0);
+}
+
+static uint8_t
+initEnv(t_env *e)
+{
+    if (resolveAddrToPing(e)) {
+        return (1);
     }
     if ((e->socket = initSocket(&e->opt)) < 3) {
         cleanEnv(e);
-        return (-1);
+        return (1);
     }
     e->packetSize = e->opt.icmpMsgSize + sizeof(struct icmphdr);
     memset(&g_loopControl, 1, sizeof(t_pingStat));
@@ -37,7 +59,7 @@ initEnv(t_env *e)
 int
 main(int argc, char const **argv)
 {
-    t_env e = { -1, NULL, NULL, { 0 }, 0 };
+    t_env e = { -1, NULL, NULL, { 0 }, { 0 }, { 0 }, 0 };
 
     parseOptions(&e.opt, argc, argv);
     if (e.opt.displayUsage) {

@@ -1,13 +1,5 @@
 #include "ft_ping.h"
 
-t_pingStat *
-getPingStat()
-{
-    static t_pingStat ps = { 0 };
-
-    return (&ps);
-}
-
 void
 stopLoop(int32_t sig)
 {
@@ -31,6 +23,11 @@ loop(t_env const *e)
     struct sockaddr from;
     socklen_t fromLen = sizeof(struct sockaddr);
 
+    printf("PING %s (%s) %u(%lu) bytes of data.\n",
+           e->opt.toPing,
+           e->ip,
+           e->opt.icmpMsgSize,
+           e->packetSize + sizeof(struct iphdr));
     while (g_loopControl.loop) {
         uint8_t shouldRecv = 1;
 
@@ -41,16 +38,16 @@ loop(t_env const *e)
                    0,
                    e->dest->ai_addr,
                    e->dest->ai_addrlen) <= 0) {
-            printf("%s\n", "Error : can't send packet");
+            printf("Error : can't send packet\n");
             shouldRecv = 0;
         }
         ++ps.nbrSent;
         if (shouldRecv) {
             if (recvfrom(e->socket, packet, e->packetSize, 0, &from, &fromLen) >
                 0) {
-                printf("%s\n", "Received something");
+                printf("Received something from %s\n", e->fqdn);
             } else {
-                printf("%s\n", "Timeout");
+                printf("Timeout\n");
             }
         }
         g_loopControl.wait = 1;
