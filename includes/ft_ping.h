@@ -49,7 +49,8 @@ int32_t initSocket(t_option const *opt);
 t_pingStat *getPingStat();
 void stopLoop(int32_t sig);
 void setIcmpHdr(struct icmphdr *hdr, uint16_t seq);
-uint16_t computeChecksum(uint16_t *ptr, uint16_t packetSize);
+uint16_t computeChecksum(uint16_t const *ptr, uint16_t packetSize);
 void loop(t_env const *e);
+uint16_t swap_uint16(uint16_t val);
 
 #endif

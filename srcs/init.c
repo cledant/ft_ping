@@ -25,9 +25,10 @@ dbg_printAddrInfo(struct addrinfo const *dest)
         return;
     }
     struct sockaddr_in *saddr = (struct sockaddr_in *)dest->ai_addr;
-    printf("IP = %s | Name = %s\n----------\n",
+    printf("IP = %s | Name = %s | Port = %d\n----------\n",
            inet_ntoa(saddr->sin_addr),
-           dest->ai_canonname);
+           dest->ai_canonname,
+           saddr->sin_port);
 }
 
 uint8_t
@@ -58,7 +59,7 @@ resolveAddr(char const *addr)
     }
     hints.ai_flags = AF_INET;
     hints.ai_socktype = SOCK_RAW;
-    hints.ai_protocol = IPPROTO_RAW;
+    hints.ai_protocol = IPPROTO_ICMP;
     if (getaddrinfo(addr, NULL, &hints, &dest)) {
         return (NULL);
     }
@@ -70,7 +71,7 @@ initSocket(t_option const *opt)
 {
     int32_t sock = -1;
 
-    if ((sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) < 3) {
+    if ((sock = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) < 3) {
         printf("%s\n", "Error initializing socket : maybe you should sudo");
         return (-1);
     }
@@ -85,7 +86,7 @@ initSocket(t_option const *opt)
         return (-1);
     }
     // TTL
-    if (setsockopt(sock, SOL_SOCKET, IP_TTL, &opt->ttl, sizeof(int32_t))) {
+    if (setsockopt(sock, SOL_IP, IP_TTL, &opt->ttl, sizeof(int32_t))) {
         printf("%s\n", "Error setting ttl");
         close(sock);
         return (-1);
