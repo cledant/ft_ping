@@ -14,19 +14,21 @@
 #include <unistd.h>
 
 #define TIMEOUT_DEFAULT 1
-#define TTL_DEFAULT 52
+#define TTL_DEFAULT 54
 #define ICMP_MSG_SIZE_DEFAULT 56
 #define TIME_INTERVAL_DEFAULT 1
+#define SEC_IN_US 1000000
+#define SEC_IN_MS 1000
 
 typedef struct s_pingStat
 {
     uint64_t nbrSent;
     uint64_t nbrRecv;
-    uint64_t currSendTs;
-    uint64_t curRecvTs;
-    uint64_t recvMin;
-    uint64_t recvMax;
-    uint64_t sum;
+    double rttMin;
+    double rttMax;
+    double sum;
+    struct timeval currSendTs;
+    struct timeval currRecvTs;
 } t_pingStat;
 
 typedef struct s_option
