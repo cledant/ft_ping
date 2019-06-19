@@ -49,6 +49,7 @@ typedef struct s_dest
     struct addrinfo *addrDest;
     char fqdn[NI_MAXHOST];
     char ip[INET_ADDRSTRLEN];
+    int32_t dispFqdn;
 } t_dest;
 
 typedef struct s_response

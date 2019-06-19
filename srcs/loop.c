@@ -40,18 +40,27 @@ handleReply(t_response const *resp,
     // TODO Verbose
     ++ps->nbrRecv;
     if (recvBytes != e->packetSize) {
-        printf("Error on packet reception from %s\n", e->opt.toPing);
+        printf("ft_ping: Error on packet reception from %s\n", e->opt.toPing);
         return;
     }
     rtt = calcAndStatRtt(ps);
 
-    printf("%lu bytes from %s (%s): imcp_seq=%lu ttl=%u time=%.3f ms\n",
-           recvBytes - sizeof(struct iphdr),
-           "todo",
-           e->dest.ip,
-           ps->nbrSent,
-           ((struct iphdr *)resp->iovecBuff)->ttl,
-           rtt);
+    if (e->dest.dispFqdn) {
+        printf("%lu bytes from %s (%s): imcp_seq=%lu ttl=%u time=%.3g ms\n",
+               recvBytes - sizeof(struct iphdr),
+               e->dest.fqdn,
+               e->dest.ip,
+               ps->nbrSent,
+               ((struct iphdr *)resp->iovecBuff)->ttl,
+               rtt);
+    } else {
+        printf("%lu bytes from %s: imcp_seq=%lu ttl=%u time=%.3g ms\n",
+               recvBytes - sizeof(struct iphdr),
+               e->dest.ip,
+               ps->nbrSent,
+               ((struct iphdr *)resp->iovecBuff)->ttl,
+               rtt);
+    }
 }
 
 void
@@ -80,7 +89,7 @@ loop(t_env const *e)
 
     setupMsghdr(&resp);
     printf("PING %s (%s) %u(%u) bytes of data.\n",
-           e->opt.toPing,
+           e->dest.addrDest->ai_canonname,
            e->dest.ip,
            e->opt.icmpMsgSize,
            e->packetSize);
@@ -96,7 +105,7 @@ loop(t_env const *e)
                    e->dest.addrDest->ai_addr,
                    e->dest.addrDest->ai_addrlen) <= 0) {
             // TODO Verbose
-            printf("Error : can't send packet\n");
+            printf("ft_ping: can't send packet\n");
             shouldRecv = 0;
         } else {
             ++ps.nbrSent;
