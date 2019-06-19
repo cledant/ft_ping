@@ -52,9 +52,10 @@ int32_t
 initSocket(t_option const *opt)
 {
     int32_t sock = -1;
+    uint8_t set = 1;
 
     if ((sock = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP)) < 3) {
-        printf("%s\n", "Error initializing socket : maybe you should sudo");
+        printf("ft_ping : Error initializing socket : maybe you should sudo\n");
         return (-1);
     }
     // Timeout
@@ -63,13 +64,13 @@ initSocket(t_option const *opt)
                    SO_RCVTIMEO,
                    &opt->timeout,
                    sizeof(struct timeval))) {
-        printf("%s\n", "Error setting timeout params");
+        printf("ft_ping : Error setting timeout params\n");
         close(sock);
         return (-1);
     }
-    // TTL
-    if (setsockopt(sock, SOL_IP, IP_TTL, &opt->ttl, sizeof(int32_t))) {
-        printf("%s\n", "Error setting ttl");
+    // Manual Ip header
+    if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, &set, sizeof(uint8_t))) {
+        printf("ft_ping : Error setting socket ip header\n");
         close(sock);
         return (-1);
     }

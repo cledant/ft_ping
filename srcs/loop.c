@@ -10,10 +10,12 @@ convertTime(struct timeval const *ts)
 static void
 displayPingStat(t_pingStat const *ps)
 {
+    // TODO
+    printf("\nTO DO STAT\n");
     (void)ps;
 }
 
-static double
+static inline double
 calcAndStatRtt(t_pingStat *ps)
 {
     double rtt = (convertTime(&ps->currRecvTs) - convertTime(&ps->currSendTs)) /
@@ -27,19 +29,8 @@ calcAndStatRtt(t_pingStat *ps)
     return (rtt);
 }
 
-static uint8_t
-parseIcmpPacket(struct icmphdr const *packet)
-{
-    // TODO calc checksum, etc...
-    if (packet->type != ICMP_ECHOREPLY && packet->code != 0) {
-        printf("Something in reply failed\n");
-        return (1);
-    }
-    return (0);
-}
-
-static void
-handleReply(uint8_t const *packet,
+static inline void
+handleReply(t_response const *resp,
             t_env const *e,
             uint64_t recvBytes,
             t_pingStat *ps)
@@ -48,20 +39,18 @@ handleReply(uint8_t const *packet,
 
     // TODO Verbose
     ++ps->nbrRecv;
-    if (recvBytes < sizeof(struct icmphdr) || recvBytes != e->packetSize) {
-        printf("Error on packet reception from %s\n", e->fqdn);
-        return;
-    }
-    if (parseIcmpPacket((struct icmphdr *)packet)) {
+    if (recvBytes != e->packetSize) {
+        printf("Error on packet reception from %s\n", e->opt.toPing);
         return;
     }
     rtt = calcAndStatRtt(ps);
-    printf("%lu bytes from %s (%s): imcp_seq=%lu ttl=%u time=%.2f ms\n",
-           recvBytes,
-           e->fqdn,
-           e->ip,
+
+    printf("%lu bytes from %s (%s): imcp_seq=%lu ttl=%u time=%.3f ms\n",
+           recvBytes - sizeof(struct iphdr),
+           "todo",
+           e->dest.ip,
            ps->nbrSent,
-           e->opt.ttl,
+           ((struct iphdr *)resp->iovecBuff)->ttl,
            rtt);
 }
 
@@ -87,23 +76,25 @@ loop(t_env const *e)
     t_pingStat ps = { 0 };
     uint8_t packet[e->packetSize];
     uint64_t recvBytes = 0;
+    t_response resp = { { 0 }, { { 0 } }, { 0 }, { 0 } };
 
-    printf("PING %s (%s) %u(%lu) bytes of data.\n",
+    setupMsghdr(&resp);
+    printf("PING %s (%s) %u(%u) bytes of data.\n",
            e->opt.toPing,
-           e->ip,
+           e->dest.ip,
            e->opt.icmpMsgSize,
-           e->packetSize + sizeof(struct iphdr));
+           e->packetSize);
     while (g_loopControl.loop) {
         uint8_t shouldRecv = 1;
 
-        setHdr(packet, &e->opt, ps.nbrSent);
+        setHdr(packet, &e->opt, &e->dest, ps.nbrSent);
         gettimeofday(&ps.currSendTs, NULL);
         if (sendto(e->socket,
                    packet,
                    e->packetSize,
                    0,
-                   e->dest->ai_addr,
-                   e->dest->ai_addrlen) <= 0) {
+                   e->dest.addrDest->ai_addr,
+                   e->dest.addrDest->ai_addrlen) <= 0) {
             // TODO Verbose
             printf("Error : can't send packet\n");
             shouldRecv = 0;
@@ -111,10 +102,9 @@ loop(t_env const *e)
             ++ps.nbrSent;
         }
         if (shouldRecv) {
-            if ((recvBytes = recvfrom(
-                   e->socket, packet, e->packetSize, 0, NULL, NULL)) > 0) {
+            if ((recvBytes = recvmsg(e->socket, &resp.msgHdr, 0)) > 0) {
                 gettimeofday(&ps.currRecvTs, NULL);
-                handleReply(packet, e, recvBytes, &ps);
+                handleReply(&resp, e, recvBytes, &ps);
             } else {
                 // TODO Verbose
                 printf("Timeout\n");
@@ -124,6 +114,6 @@ loop(t_env const *e)
         alarm(TIME_INTERVAL_DEFAULT);
         while (g_loopControl.wait)
             ;
-        displayPingStat(&ps);
     }
+    displayPingStat(&ps);
 }

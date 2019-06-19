@@ -4,7 +4,7 @@ static void
 cleanEnv(t_env *e)
 {
     if (e->resolved) {
-        freeaddrinfo(e->dest);
+        freeaddrinfo(e->resolved);
     }
     if (e->socket) {
         close(e->socket);
@@ -15,24 +15,24 @@ static uint8_t
 resolveAddrToPing(t_env *e)
 {
     if (!(e->resolved = resolveAddr(e->opt.toPing))) {
-        printf("ft_ping : %s : Name or service not known", e->opt.toPing);
+        printf("ft_ping : %s : Name or service not known\n", e->opt.toPing);
         return (1);
     }
-    if (getValidIp(e->resolved, &e->dest)) {
-        printf("ft_ping : No valid ip for name or service");
+    if (getValidIp(e->resolved, &e->dest.addrDest)) {
+        printf("ft_ping : No valid ip for name or service\n");
         cleanEnv(e);
         return (1);
     }
     if (!inet_ntop(AF_INET,
-                   &((struct sockaddr_in *)e->dest->ai_addr)->sin_addr,
-                   e->ip,
+                   &((struct sockaddr_in *)e->dest.addrDest->ai_addr)->sin_addr,
+                   e->dest.ip,
                    INET_ADDRSTRLEN)) {
-        printf("ft_ping : Ip conversion failed");
+        printf("ft_ping : Ip conversion failed\n");
         cleanEnv(e);
         return (1);
     }
-    if (getFqdn(e->fqdn, NI_MAXHOST, e->dest)) {
-        printf("ft_ping : Can't resolve Fqdn");
+    if (getFqdn(e->dest.fqdn, NI_MAXHOST, e->dest.addrDest)) {
+        printf("ft_ping : Can't resolve Fqdn\n");
         cleanEnv(e);
         return (1);
     }
@@ -49,7 +49,8 @@ initEnv(t_env *e)
         cleanEnv(e);
         return (1);
     }
-    e->packetSize = e->opt.icmpMsgSize + sizeof(struct icmphdr);
+    e->packetSize =
+      e->opt.icmpMsgSize + sizeof(struct icmphdr) + sizeof(struct iphdr);
     memset(&g_loopControl, 1, sizeof(t_pingStat));
     signal(SIGINT, stopLoop);
     signal(SIGALRM, stopWait);
@@ -59,7 +60,7 @@ initEnv(t_env *e)
 int
 main(int argc, char const **argv)
 {
-    t_env e = { -1, NULL, NULL, { 0 }, { 0 }, { 0 }, 0 };
+    t_env e = { -1, 0, NULL, { 0 }, { 0 } };
 
     parseOptions(&e.opt, argc, argv);
     if (e.opt.displayUsage) {

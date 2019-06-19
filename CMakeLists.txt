@@ -10,4 +10,4 @@ add_executable(ft_ping
 		srcs/opt.c)
 target_include_directories(ft_ping PRIVATE
 		${CMAKE_CURRENT_SOURCE_DIR}/includes)
-target_compile_options(ft_ping PRIVATE -Wall -Wextra -Werror -std=gnu11)
+target_compile_options(ft_ping PRIVATE -Wall -Wextra -Werror -std=gnu11 -march=native -flto)
