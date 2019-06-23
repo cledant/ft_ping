@@ -5,6 +5,7 @@
 #include <limits.h>
 #include <linux/icmp.h>
 #include <linux/ip.h>
+#include <math.h>
 #include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
@@ -13,6 +14,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #define TIMEOUT_DEFAULT 1
 #define TTL_DEFAULT 20
@@ -20,6 +22,8 @@
 #define TIME_INTERVAL_DEFAULT 1
 #define SEC_IN_US 1000000
 #define SEC_IN_MS 1000
+#define NBR_OPTION 4
+#define MAX_TTL USHRT_MAX
 #define MAX_PACKET_SIZE                                                        \
     USHRT_MAX - sizeof(struct icmphdr) - sizeof(struct iphdr)
 
@@ -27,9 +31,12 @@ typedef struct s_pingStat
 {
     uint64_t nbrSent;
     uint64_t nbrRecv;
+    uint64_t nbrError;
     double rttMin;
     double rttMax;
     double sum;
+    double sum2;
+    double totalTime;
     struct timeval currSendTs;
     struct timeval currRecvTs;
 } t_pingStat;
@@ -37,11 +44,12 @@ typedef struct s_pingStat
 typedef struct s_option
 {
     uint8_t displayUsage;
+    uint8_t verbose;
     int32_t ttl;
     struct timeval timeout;
     uint16_t icmpMsgSize;
+    double timeBetweenPacket;
     char const *toPing;
-
 } t_option;
 
 typedef struct s_dest
@@ -84,6 +92,8 @@ uint8_t getFqdn(char *fqdn, uint64_t fqdnSize, struct addrinfo const *addr);
 int32_t initSocket(t_option const *opt);
 
 // loop.c
+uint64_t convertTime(struct timeval const *ts);
+double calcAndStatRtt(t_pingStat *ps);
 void stopLoop(int32_t sig);
 void stopWait(int32_t sig);
 void loop(t_env const *e);
@@ -93,11 +103,18 @@ void setHdr(uint8_t *buff,
             t_option const *opt,
             t_dest const *dest,
             uint64_t seq);
-void setupMsghdr(t_response *resp);
+void setupRespBuffer(t_response *resp);
 uint16_t computeChecksum(uint16_t const *ptr, uint16_t packetSize);
 uint16_t swap_uint16(uint16_t val);
 
 // opt.c
-void parseOptions(t_option *opt, int argc, char const **argv);
+void parseOptions(t_option *opt, int32_t argc, char const **argv);
 void displayUsage();
+
+// display.c
+void displayPingStat(t_pingStat const *ps, char const *addr);
+void displayRtt(t_response const *resp,
+                t_env const *e,
+                uint64_t recvBytes,
+                t_pingStat *ps);
 #endif

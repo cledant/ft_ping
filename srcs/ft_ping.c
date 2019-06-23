@@ -60,7 +60,7 @@ initEnv(t_env *e)
 }
 
 int
-main(int argc, char const **argv)
+main(int32_t argc, char const **argv)
 {
     t_env e = { -1, 0, NULL, { 0 }, { 0 } };
 

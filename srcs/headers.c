@@ -45,7 +45,7 @@ setHdr(uint8_t *buff, t_option const *opt, t_dest const *dest, uint64_t seq)
 }
 
 void
-setupMsghdr(t_response *resp)
+setupRespBuffer(t_response *resp)
 {
     resp->iovec[0].iov_base = resp->iovecBuff;
     resp->iovec[0].iov_len = USHRT_MAX;
