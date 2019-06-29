@@ -65,6 +65,7 @@ int
 main(int32_t argc, char const **argv)
 {
     t_env e = { -1, 0, NULL, { 0 }, { 0 } };
+	struct timeval start;
 
     if (getuid()) {
         printf("ft_ping: not enough privilege, use sudo\n");
@@ -79,7 +80,8 @@ main(int32_t argc, char const **argv)
     if (initEnv(&e)) {
         return (-1);
     }
-    loop(&e);
+    gettimeofday(&start, NULL);
+    loop(&e, convertTime(&start));
     cleanEnv(&e);
     return (0);
 }

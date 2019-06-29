@@ -22,7 +22,7 @@
 #define TIME_INTERVAL_DEFAULT 1
 #define SEC_IN_US 1000000
 #define SEC_IN_MS 1000
-#define NBR_OPTION 7
+#define NBR_OPTION 9
 #define MAX_TTL USHRT_MAX
 #define MAX_PACKET_SIZE                                                        \
     USHRT_MAX - sizeof(struct icmphdr) - sizeof(struct iphdr)
@@ -36,9 +36,11 @@ typedef struct s_pingStat
     double rttMax;
     double sum;
     double sum2;
-    double totalTime;
+    uint64_t totalTime;
+    uint64_t startTime;
     struct timeval currSendTs;
     struct timeval currRecvTs;
+    struct timeval currTotalTs;
 } t_pingStat;
 
 typedef struct s_option
@@ -48,10 +50,11 @@ typedef struct s_option
     uint8_t quiet;
     uint8_t printTs;
     uint8_t noLookup;
+    uint8_t flood;
+    uint64_t deadline;
     int32_t ttl;
     struct timeval timeout;
     uint16_t icmpMsgSize;
-    double timeBetweenPacket;
     char const *toPing;
 } t_option;
 
@@ -99,7 +102,7 @@ uint64_t convertTime(struct timeval const *ts);
 double calcAndStatRtt(t_pingStat *ps);
 void stopLoop(int32_t sig);
 void stopWait(int32_t sig);
-void loop(t_env const *e);
+void loop(t_env const *e, uint64_t startTime);
 
 // headers.c
 void setHdr(uint8_t *buff,
@@ -115,7 +118,7 @@ void parseOptions(t_option *opt, int32_t argc, char const **argv);
 void displayUsage();
 
 // display.c
-void displayPingStat(t_pingStat const *ps, char const *addr);
+void displayPingStat(t_pingStat const *ps, char const *addr, uint64_t deadline);
 void displayRtt(t_response const *resp,
                 t_env const *e,
                 uint64_t recvBytes,

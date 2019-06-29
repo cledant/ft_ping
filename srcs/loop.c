@@ -32,7 +32,6 @@ stopLoop(int32_t sig)
     (void)sig;
     g_loopControl.loop = 0;
     g_loopControl.wait = 0;
-    printf("\n");
 }
 
 void
@@ -44,9 +43,10 @@ stopWait(int32_t sig)
 }
 
 void
-loop(t_env const *e)
+loop(t_env const *e, uint64_t startTime)
 {
     t_pingStat ps = { 0 };
+    ps.startTime = startTime;
     uint8_t packet[e->packetSize];
     uint64_t recvBytes = 0;
     t_response resp = { { 0 }, { { 0 } }, { 0 }, { 0 } };
@@ -57,9 +57,19 @@ loop(t_env const *e)
            e->dest.ip,
            e->opt.icmpMsgSize,
            e->packetSize);
+    if (e->opt.flood && !e->opt.quiet) {
+        write(1, &("."), 1);
+    }
     while (g_loopControl.loop) {
         uint8_t shouldRecv = 1;
+        uint64_t loopTime =
+          (convertTime(&ps.currTotalTs) - convertTime(&ps.currSendTs));
 
+        if (e->opt.deadline && (ps.totalTime + loopTime) > e->opt.deadline) {
+            displayPingStat(&ps, e->opt.toPing, e->opt.deadline);
+            return;
+        }
+        ps.totalTime += loopTime;
         setHdr(packet, &e->opt, &e->dest, ps.nbrSent);
         gettimeofday(&ps.currSendTs, NULL);
         if (sendto(e->socket,
@@ -85,15 +95,16 @@ loop(t_env const *e)
                     displayRtt(&resp, e, recvBytes, &ps);
                 }
             } else {
-                // TODO Verbose
-                printf("Timeout\n");
+                if (e->opt.verbose) {
+                    printf("ft_ping: Packet Timeout\n");
+                }
             }
         }
         g_loopControl.wait = 1;
         alarm(TIME_INTERVAL_DEFAULT);
-        while (g_loopControl.wait)
+        while (g_loopControl.wait && !e->opt.flood)
             ;
-        ps.totalTime += e->opt.timeBetweenPacket;
+        gettimeofday(&ps.currTotalTs, NULL);
     }
-    displayPingStat(&ps, e->opt.toPing);
+    displayPingStat(&ps, e->opt.toPing, e->opt.deadline);
 }

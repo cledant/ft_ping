@@ -18,6 +18,8 @@ parseMulti(t_option *opt, char const *arg, uint64_t len)
             opt->noLookup = 1;
         } else if (arg[i] == 'D') {
             opt->printTs = 1;
+        } else if (arg[i] == 'f') {
+            opt->flood = 1;
         }
     }
     return (0);
@@ -31,20 +33,27 @@ parseInt(t_option *opt, char const *arg, uint64_t i)
         return (0);
     }
     int32_t val = atoi(arg);
-    if (i == 2) {
+    if (i == 0) {
         if (val < 0 || (uint64_t)val > MAX_PACKET_SIZE) {
             printf("ft_ping: invalid packet size: %d\n", val);
             opt->displayUsage = 1;
             return (1);
         }
         opt->icmpMsgSize = val;
-    } else if (i == 3) {
+    } else if (i == 1) {
         if (val < 0 || (uint64_t)val > MAX_TTL) {
             printf("ft_ping: invalid ttl value: %d\n", val);
             opt->displayUsage = 1;
             return (1);
         }
         opt->ttl = val;
+    } else if (i == 2) {
+        if (val < 0) {
+            printf("ft_ping: bad wait time: %d\n", val);
+            opt->displayUsage = 1;
+            return (1);
+        }
+        opt->deadline = val * SEC_IN_US;
     }
     return (1);
 }
@@ -52,13 +61,12 @@ parseInt(t_option *opt, char const *arg, uint64_t i)
 static uint8_t
 parseSingle(t_option *opt, char const *arg, char const *nextArgv)
 {
-    char const tab[NBR_OPTION][3] = {
-        "-v", "-h", "-s", "-t", "-n", "-D", "-q"
-    };
+    char const tab[NBR_OPTION][3] = { "-s", "-t", "-w", "-v", "-h",
+                                      "-n", "-D", "-q", "-f" };
 
     for (uint64_t i = 0; i < NBR_OPTION; ++i) {
         if (!strcmp(arg, tab[i])) {
-            if (i == 2 || i == 3) {
+            if (i < 3) {
                 return (parseInt(opt, nextArgv, i));
             } else {
                 return (parseMulti(opt, arg, 2));
@@ -91,10 +99,11 @@ parseOptions(t_option *opt, int32_t argc, char const **argv)
                        0,
                        0,
                        0,
+                       0,
+                       0,
                        TTL_DEFAULT,
                        { TIMEOUT_DEFAULT, 0 },
                        ICMP_MSG_SIZE_DEFAULT,
-                       0.0,
                        NULL };
 
     if (argc == 1) {
@@ -109,16 +118,17 @@ parseOptions(t_option *opt, int32_t argc, char const **argv)
         i += parseArg(opt, argv[i], nextPtr);
     }
     opt->toPing = argv[argc - 1];
-    opt->timeBetweenPacket = 1000.0;
 }
 
 void
 displayUsage()
 {
-    printf("Usage: ft_ping [-vhqnD] [-s packetsize] [-t ttl] destination\n");
+    printf("Usage: ft_ping [-vhqnDf] [-s packetsize] [-t ttl] destination [-w "
+           "deadline]\n");
     printf("\t-v : Display packet errors\n");
     printf("\t-h : Display usage\n");
-    printf("\t-q : quiet output\n");
+    printf("\t-q : Quiet output\n");
     printf("\t-n : No name lookup for host address\n");
     printf("\t-D : Print timestamp before each line\n");
+    printf("\t-f : Flood. No wait time between icmp request\n");
 }
