@@ -31,7 +31,9 @@ resolveAddrToPing(t_env *e)
         cleanEnv(e);
         return (1);
     }
-    e->dest.dispFqdn = strcmp(e->dest.addrDest->ai_canonname, e->dest.ip);
+    if (!e->opt.noLookup) {
+        e->dest.dispFqdn = strcmp(e->dest.addrDest->ai_canonname, e->dest.ip);
+    }
     if (e->dest.dispFqdn &&
         getFqdn(e->dest.fqdn, NI_MAXHOST, e->dest.addrDest)) {
         printf("ft_ping: Can't resolve Fqdn\n");

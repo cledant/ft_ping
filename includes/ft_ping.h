@@ -17,12 +17,12 @@
 #include <stdlib.h>
 
 #define TIMEOUT_DEFAULT 1
-#define TTL_DEFAULT 20
+#define TTL_DEFAULT 128
 #define ICMP_MSG_SIZE_DEFAULT 56
 #define TIME_INTERVAL_DEFAULT 1
 #define SEC_IN_US 1000000
 #define SEC_IN_MS 1000
-#define NBR_OPTION 4
+#define NBR_OPTION 7
 #define MAX_TTL USHRT_MAX
 #define MAX_PACKET_SIZE                                                        \
     USHRT_MAX - sizeof(struct icmphdr) - sizeof(struct iphdr)
@@ -45,6 +45,9 @@ typedef struct s_option
 {
     uint8_t displayUsage;
     uint8_t verbose;
+    uint8_t quiet;
+    uint8_t printTs;
+    uint8_t noLookup;
     int32_t ttl;
     struct timeval timeout;
     uint16_t icmpMsgSize;

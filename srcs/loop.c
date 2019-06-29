@@ -68,7 +68,7 @@ loop(t_env const *e)
                    0,
                    e->dest.addrDest->ai_addr,
                    e->dest.addrDest->ai_addrlen) <= 0) {
-            // TODO Verbose
+            // TODO Verbose + Error checking
             printf("ft_ping: can't send packet\n");
             shouldRecv = 0;
         }

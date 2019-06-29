@@ -49,33 +49,41 @@ displayRtt(t_response const *resp,
 {
     double rtt = calcAndStatRtt(ps);
 
-    // TODO Check format for float
-    if (e->opt.icmpMsgSize >= 16 && e->dest.dispFqdn) {
-        printf("%lu bytes from %s (%s): imcp_seq=%lu ttl=%u time=%.3g ms\n",
-               recvBytes - sizeof(struct iphdr),
+    if (e->opt.quiet) {
+        return;
+    }
+    if (e->opt.printTs) {
+        struct timeval ts;
+        gettimeofday(&ts, NULL);
+        printf("[%lu.%06lu] ", ts.tv_sec, ts.tv_usec);
+    }
+    printf("%lu bytes from", recvBytes - sizeof(struct iphdr));
+    if (e->dest.dispFqdn) {
+        printf(" %s (%s): imcp_seq=%lu ttl=%u",
                e->dest.fqdn,
-               e->dest.ip,
-               ps->nbrSent,
-               ((struct iphdr *)resp->iovecBuff)->ttl,
-               rtt);
-    } else if (e->opt.icmpMsgSize >= 16) {
-        printf("%lu bytes from %s: imcp_seq=%lu ttl=%u time=%.3g ms\n",
-               recvBytes - sizeof(struct iphdr),
-               e->dest.ip,
-               ps->nbrSent,
-               ((struct iphdr *)resp->iovecBuff)->ttl,
-               rtt);
-    } else if (e->dest.dispFqdn) {
-        printf("%lu bytes from %s: imcp_seq=%lu ttl=%u\n",
-               recvBytes - sizeof(struct iphdr),
                e->dest.ip,
                ps->nbrSent,
                ((struct iphdr *)resp->iovecBuff)->ttl);
     } else {
-        printf("%lu bytes from %s: imcp_seq=%lu ttl=%u\n",
-               recvBytes - sizeof(struct iphdr),
+        printf(" %s: imcp_seq=%lu ttl=%u",
                e->dest.ip,
                ps->nbrSent,
                ((struct iphdr *)resp->iovecBuff)->ttl);
+    }
+    if (e->opt.icmpMsgSize >= 16) {
+        if (rtt > 100) {
+            printf(" time=%.0f ms\n", rtt);
+        } else if (rtt > 10) {
+            uint64_t decimal = (rtt - (uint64_t)rtt) * 10;
+            printf(" time=%.0f.%01lu ms\n", rtt, decimal);
+        } else if (rtt > 1) {
+            uint64_t decimal = (rtt - (uint64_t)rtt) * 100;
+            printf(" time=%.0f.%02lu ms\n", rtt, decimal);
+        } else {
+            uint64_t decimal = (rtt - (uint64_t)rtt) * 1000;
+            printf(" time=%.0f.%03lu ms\n", rtt, decimal);
+        }
+    } else {
+        printf("\n");
     }
 }

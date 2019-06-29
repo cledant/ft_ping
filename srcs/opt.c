@@ -12,6 +12,12 @@ parseMulti(t_option *opt, char const *arg, uint64_t len)
             opt->displayUsage = 1;
         } else if (arg[i] == 'v') {
             opt->verbose = 1;
+        } else if (arg[i] == 'q') {
+            opt->quiet = 1;
+        } else if (arg[i] == 'n') {
+            opt->noLookup = 1;
+        } else if (arg[i] == 'D') {
+            opt->printTs = 1;
         }
     }
     return (0);
@@ -46,11 +52,13 @@ parseInt(t_option *opt, char const *arg, uint64_t i)
 static uint8_t
 parseSingle(t_option *opt, char const *arg, char const *nextArgv)
 {
-    char const tab[NBR_OPTION][3] = { "-v", "-h", "-s", "-t" };
+    char const tab[NBR_OPTION][3] = {
+        "-v", "-h", "-s", "-t", "-n", "-D", "-q"
+    };
 
     for (uint64_t i = 0; i < NBR_OPTION; ++i) {
         if (!strcmp(arg, tab[i])) {
-            if (i > 1) {
+            if (i == 2 || i == 3) {
                 return (parseInt(opt, nextArgv, i));
             } else {
                 return (parseMulti(opt, arg, 2));
@@ -78,10 +86,16 @@ parseArg(t_option *opt, char const *argv, char const *nextArgv)
 void
 parseOptions(t_option *opt, int32_t argc, char const **argv)
 {
-    *opt = (t_option){
-        0,   0,   TTL_DEFAULT, { TIMEOUT_DEFAULT, 0 }, ICMP_MSG_SIZE_DEFAULT,
-        0.0, NULL
-    };
+    *opt = (t_option){ 0,
+                       0,
+                       0,
+                       0,
+                       0,
+                       TTL_DEFAULT,
+                       { TIMEOUT_DEFAULT, 0 },
+                       ICMP_MSG_SIZE_DEFAULT,
+                       0.0,
+                       NULL };
 
     if (argc == 1) {
         opt->displayUsage = 1;
@@ -101,7 +115,10 @@ parseOptions(t_option *opt, int32_t argc, char const **argv)
 void
 displayUsage()
 {
-    printf("Usage: ft_ping [-vh] [-s packetsize] [-t ttl] destination\n");
+    printf("Usage: ft_ping [-vhqnD] [-s packetsize] [-t ttl] destination\n");
     printf("\t-v : Display packet errors\n");
     printf("\t-h : Display usage\n");
+    printf("\t-q : quiet output\n");
+    printf("\t-n : No name lookup for host address\n");
+    printf("\t-D : Print timestamp before each line\n");
 }
