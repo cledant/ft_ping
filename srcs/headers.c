@@ -1,12 +1,13 @@
 #include "ft_ping.h"
+#include <linux/icmp.h>
 
 static inline void
 setImcpHeader(struct icmphdr *icmpHdr, uint64_t seq, uint16_t icmpMsgSize)
 {
     icmpHdr->type = ICMP_ECHO;
     icmpHdr->code = 0;
-    icmpHdr->un.echo.id = swap_uint16(getpid());
-    icmpHdr->un.echo.sequence = swap_uint16(seq);
+    icmpHdr->un.echo.id = swapUint16(getpid());
+    icmpHdr->un.echo.sequence = swapUint16(seq);
     icmpHdr->checksum = 0;
     icmpHdr->checksum = computeChecksum((uint16_t *)icmpHdr,
                                         icmpMsgSize + sizeof(struct icmphdr));
@@ -20,7 +21,7 @@ setIpHdr(struct iphdr *ipHdr, t_option const *opt, t_dest const *dest)
     ipHdr->ihl = 5;
     ipHdr->tot_len =
       opt->icmpMsgSize + sizeof(struct icmphdr) + sizeof(struct iphdr);
-    ipHdr->id = swap_uint16(getpid());
+    ipHdr->id = swapUint16(getpid());
     ipHdr->frag_off = 0;
     ipHdr->ttl = opt->ttl;
     ipHdr->protocol = IPPROTO_ICMP;
@@ -42,6 +43,18 @@ setHdr(uint8_t *buff, t_option const *opt, t_dest const *dest, uint64_t seq)
     }
     setImcpHeader(icmpHdr, seq, opt->icmpMsgSize);
     setIpHdr(ipHdr, opt, dest);
+}
+
+void
+printIcmpHdr(struct icmphdr const *icmpHdr)
+{
+    printf("ICMP HEADER VALUES :\n\tType: %u\n\tCode: %u\n\tPid: "
+           "%u\n\tSequence: %u\n\tChecksum: %u\n",
+           icmpHdr->type,
+           icmpHdr->code,
+           swapUint16(icmpHdr->un.echo.id),
+           swapUint16(icmpHdr->un.echo.sequence),
+           icmpHdr->checksum);
 }
 
 void
@@ -77,7 +90,7 @@ computeChecksum(uint16_t const *ptr, uint16_t packetSize)
 }
 
 inline uint16_t
-swap_uint16(uint16_t val)
+swapUint16(uint16_t val)
 {
     return ((val << 8) | (val >> 8));
 }

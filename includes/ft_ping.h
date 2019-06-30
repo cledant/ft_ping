@@ -9,12 +9,12 @@
 #include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <stdlib.h>
 
 #define TIMEOUT_DEFAULT 1
 #define TTL_DEFAULT 128
@@ -24,8 +24,8 @@
 #define SEC_IN_MS 1000
 #define NBR_OPTION 9
 #define MAX_TTL USHRT_MAX
-#define MAX_PACKET_SIZE                                                        \
-    USHRT_MAX - sizeof(struct icmphdr) - sizeof(struct iphdr)
+#define MIN_PACKET_SIZE (int64_t)(sizeof(struct icmphdr) - sizeof(struct iphdr))
+#define MAX_PACKET_SIZE USHRT_MAX - MIN_PACKET_SIZE
 
 typedef struct s_pingStat
 {
@@ -98,8 +98,8 @@ uint8_t getFqdn(char *fqdn, uint64_t fqdnSize, struct addrinfo const *addr);
 int32_t initSocket(t_option const *opt);
 
 // loop.c
-uint64_t convertTime(struct timeval const *ts);
 double calcAndStatRtt(t_pingStat *ps);
+uint64_t convertTime(struct timeval const *ts);
 void stopLoop(int32_t sig);
 void stopWait(int32_t sig);
 void loop(t_env const *e, uint64_t startTime);
@@ -109,9 +109,10 @@ void setHdr(uint8_t *buff,
             t_option const *opt,
             t_dest const *dest,
             uint64_t seq);
+void printIcmpHdr(struct icmphdr const *icmpHdr);
 void setupRespBuffer(t_response *resp);
 uint16_t computeChecksum(uint16_t const *ptr, uint16_t packetSize);
-uint16_t swap_uint16(uint16_t val);
+uint16_t swapUint16(uint16_t val);
 
 // opt.c
 void parseOptions(t_option *opt, int32_t argc, char const **argv);
@@ -121,6 +122,6 @@ void displayUsage();
 void displayPingStat(t_pingStat const *ps, char const *addr, uint64_t deadline);
 void displayRtt(t_response const *resp,
                 t_env const *e,
-                uint64_t recvBytes,
+                int64_t recvBytes,
                 t_pingStat *ps);
 #endif

@@ -1,6 +1,114 @@
 #include "ft_ping.h"
 #include <linux/icmp.h>
 
+static inline uint8_t
+checkIcmpHdrChecksum(t_response *resp, uint8_t verbose, int64_t recvBytes)
+{
+    struct icmphdr *icmpHdr =
+      (struct icmphdr *)(resp->iovecBuff + sizeof(struct iphdr));
+
+    uint16_t recvChecksum = icmpHdr->checksum;
+    icmpHdr->checksum = 0;
+    icmpHdr->checksum =
+      computeChecksum((uint16_t *)icmpHdr, recvBytes - sizeof(struct iphdr));
+    if (icmpHdr->checksum == recvChecksum) {
+        return (0);
+    }
+    if (verbose) {
+        printf("ft_ping : invalid icmpHdr checksum\n");
+        printf("Received icmp checksum: %u | Calculated: %u\n",
+               recvChecksum,
+               icmpHdr->checksum);
+    }
+    return (1);
+}
+
+static inline uint8_t
+checkIpHdrChecksum(t_response *resp, uint8_t verbose, int64_t recvBytes)
+{
+    struct iphdr *ipHdr = (struct iphdr *)resp->iovecBuff;
+
+    uint16_t recvChecksum = ipHdr->check;
+    ipHdr->check = 0;
+    ipHdr->check = computeChecksum((uint16_t *)ipHdr, recvBytes);
+    if (ipHdr->check == recvChecksum) {
+        return (0);
+    }
+    if (verbose) {
+        printf("ft_ping : invalid ipHdr checksum\n");
+        printf("Received ip checksum: %u | Calculated: %u\n",
+               recvChecksum,
+               ipHdr->check);
+    }
+    return (1);
+}
+
+static inline uint8_t
+processResponse(t_response *resp,
+                t_env const *e,
+                int64_t recvBytes,
+                t_pingStat *ps)
+{
+    struct icmphdr *icmpHdr =
+      (struct icmphdr *)(resp->iovecBuff + sizeof(struct iphdr));
+    // printf("Recv bytes : %ld\n", recvBytes);
+    if (e->opt.verbose) {
+        printIcmpHdr(icmpHdr);
+    }
+    if (recvBytes < 0 && e->opt.verbose) {
+        printf("ft_ping: recvmsg : Network is unreachable\n");
+        ++ps->nbrError;
+        return (0);
+    } else if (recvBytes >= 0 && recvBytes < MIN_PACKET_SIZE &&
+               e->opt.verbose) {
+        printf("ft_ping: Invalid packet size : %ld reception from %s\n",
+               recvBytes,
+               e->opt.toPing);
+        ++ps->nbrError;
+        return (0);
+    }
+    if (checkIpHdrChecksum(resp, e->opt.verbose, recvBytes)) {
+        if (e->opt.verbose) {
+            printf("ft_ping : invalid ipHdr checksum\n");
+        }
+        ++ps->nbrError;
+        return (0);
+    }
+    if (checkIcmpHdrChecksum(resp, e->opt.verbose, recvBytes)) {
+        ++ps->nbrError;
+        return (0);
+    }
+    if (icmpHdr->type != ICMP_ECHOREPLY) {
+        if (e->opt.verbose) {
+            printf("ft_ping : not a echo reply\n");
+        }
+        ++ps->nbrError;
+        return (0);
+    }
+    if (swapUint16(icmpHdr->un.echo.id) != getpid()) {
+        if (e->opt.verbose) {
+            printf("ft_ping : invalid pid\n");
+        }
+        return (1);
+    }
+    ++ps->nbrRecv;
+    displayRtt(resp, e, recvBytes, ps);
+    return (0);
+}
+
+static inline void
+displayWhoIsPing(t_env const *e)
+{
+    printf("PING %s (%s) %u(%u) bytes of data.\n",
+           e->dest.addrDest->ai_canonname,
+           e->dest.ip,
+           e->opt.icmpMsgSize,
+           e->packetSize);
+    if (e->opt.flood && !e->opt.quiet) {
+        write(1, &("."), 1);
+    }
+}
+
 inline double
 calcAndStatRtt(t_pingStat *ps)
 {
@@ -48,18 +156,10 @@ loop(t_env const *e, uint64_t startTime)
     t_pingStat ps = { 0 };
     ps.startTime = startTime;
     uint8_t packet[e->packetSize];
-    uint64_t recvBytes = 0;
     t_response resp = { { 0 }, { { 0 } }, { 0 }, { 0 } };
 
     setupRespBuffer(&resp);
-    printf("PING %s (%s) %u(%u) bytes of data.\n",
-           e->dest.addrDest->ai_canonname,
-           e->dest.ip,
-           e->opt.icmpMsgSize,
-           e->packetSize);
-    if (e->opt.flood && !e->opt.quiet) {
-        write(1, &("."), 1);
-    }
+    displayWhoIsPing(e);
     while (g_loopControl.loop) {
         uint8_t shouldRecv = 1;
         uint64_t loopTime =
@@ -72,32 +172,29 @@ loop(t_env const *e, uint64_t startTime)
         ps.totalTime += loopTime;
         setHdr(packet, &e->opt, &e->dest, ps.nbrSent);
         gettimeofday(&ps.currSendTs, NULL);
-        if (sendto(e->socket,
-                   packet,
-                   e->packetSize,
-                   0,
-                   e->dest.addrDest->ai_addr,
-                   e->dest.addrDest->ai_addrlen) <= 0) {
-            // TODO Verbose + Error checking
-            printf("ft_ping: can't send packet\n");
+        int64_t sendBytes = sendto(e->socket,
+                                   packet,
+                                   e->packetSize,
+                                   0,
+                                   e->dest.addrDest->ai_addr,
+                                   e->dest.addrDest->ai_addrlen);
+        if (sendBytes < 0) {
+            printf("ft_ping: sendto: Network is unreachable\n");
             shouldRecv = 0;
+        }
+        if (e->opt.verbose && sendBytes >= 0 && sendBytes != e->packetSize) {
+            printf("ft_ping: Invalid size sent. Sent %ld bytes. Should have "
+                   "sent %u bytes\n",
+                   sendBytes,
+                   e->packetSize);
         }
         ++ps.nbrSent;
         if (shouldRecv) {
-            if ((recvBytes = recvmsg(e->socket, &resp.msgHdr, 0)) > 0) {
+            while (1) {
+                int64_t recvBytes = recvmsg(e->socket, &resp.msgHdr, 0);
                 gettimeofday(&ps.currRecvTs, NULL);
-                // TODO Verbose + Error checking
-                if (recvBytes != e->packetSize) {
-                    printf("ft_ping: Error on packet reception from %s\n",
-                           e->opt.toPing);
-                } else {
-                    ++ps.nbrRecv;
-                    displayRtt(&resp, e, recvBytes, &ps);
-                }
-            } else {
-                if (e->opt.verbose) {
-                    printf("ft_ping: Packet Timeout\n");
-                }
+                if (!processResponse(&resp, e, recvBytes, &ps))
+                    break;
             }
         }
         g_loopControl.wait = 1;

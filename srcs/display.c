@@ -53,7 +53,7 @@ displayPingStat(t_pingStat const *ps, char const *addr, uint64_t deadline)
 void
 displayRtt(t_response const *resp,
            t_env const *e,
-           uint64_t recvBytes,
+           int64_t recvBytes,
            t_pingStat *ps)
 {
     double rtt = calcAndStatRtt(ps);
@@ -66,7 +66,7 @@ displayRtt(t_response const *resp,
         gettimeofday(&ts, NULL);
         printf("[%lu.%06lu] ", ts.tv_sec, ts.tv_usec);
     }
-    printf("%lu bytes from", recvBytes - sizeof(struct iphdr));
+    printf("%ld bytes from", recvBytes - sizeof(struct iphdr));
     if (e->dest.dispFqdn) {
         printf(" %s (%s): imcp_seq=%lu ttl=%u",
                e->dest.fqdn,
