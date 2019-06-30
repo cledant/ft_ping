@@ -51,7 +51,6 @@ processResponse(t_response *resp,
 {
     struct icmphdr *icmpHdr =
       (struct icmphdr *)(resp->iovecBuff + sizeof(struct iphdr));
-    // printf("Recv bytes : %ld\n", recvBytes);
     if (e->opt.verbose) {
         printIcmpHdr(icmpHdr);
     }
@@ -68,9 +67,6 @@ processResponse(t_response *resp,
         return (0);
     }
     if (checkIpHdrChecksum(resp, e->opt.verbose, recvBytes)) {
-        if (e->opt.verbose) {
-            printf("ft_ping : invalid ipHdr checksum\n");
-        }
         ++ps->nbrError;
         return (0);
     }
