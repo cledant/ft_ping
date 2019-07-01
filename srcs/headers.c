@@ -45,17 +45,7 @@ setHdr(uint8_t *buff, t_option const *opt, t_dest const *dest, uint64_t seq)
     setIpHdr(ipHdr, opt, dest);
 }
 
-void
-printIcmpHdr(struct icmphdr const *icmpHdr)
-{
-    printf("ICMP HEADER VALUES :\n\tType: %u\n\tCode: %u\n\tPid: "
-           "%u\n\tSequence: %u\n\tChecksum: %u\n",
-           icmpHdr->type,
-           icmpHdr->code,
-           swapUint16(icmpHdr->un.echo.id),
-           swapUint16(icmpHdr->un.echo.sequence),
-           icmpHdr->checksum);
-}
+
 
 void
 setupRespBuffer(t_response *resp)

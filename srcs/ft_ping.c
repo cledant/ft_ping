@@ -55,7 +55,7 @@ initEnv(t_env *e)
     }
     e->packetSize =
       e->opt.icmpMsgSize + sizeof(struct icmphdr) + sizeof(struct iphdr);
-    memset(&g_loopControl, 1, sizeof(t_pingStat));
+    g_loopControl.loop = 1;
     signal(SIGINT, stopLoop);
     signal(SIGALRM, stopWait);
     return (0);

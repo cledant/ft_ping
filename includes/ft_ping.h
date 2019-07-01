@@ -32,6 +32,8 @@ typedef struct s_pingStat
     uint64_t nbrSent;
     uint64_t nbrRecv;
     uint64_t nbrError;
+    uint64_t nbrDuplicated;
+    uint64_t nbrCorrupted;
     double rttMin;
     double rttMax;
     double sum;
@@ -85,8 +87,8 @@ typedef struct s_env
 
 typedef struct s_loopControl
 {
-    uint8_t wait;
-    uint8_t loop;
+    volatile uint8_t wait;
+    volatile uint8_t loop;
 } t_loopControl;
 
 t_loopControl g_loopControl;
@@ -109,7 +111,6 @@ void setHdr(uint8_t *buff,
             t_option const *opt,
             t_dest const *dest,
             uint64_t seq);
-void printIcmpHdr(struct icmphdr const *icmpHdr);
 void setupRespBuffer(t_response *resp);
 uint16_t computeChecksum(uint16_t const *ptr, uint16_t packetSize);
 uint16_t swapUint16(uint16_t val);
@@ -119,6 +120,7 @@ void parseOptions(t_option *opt, int32_t argc, char const **argv);
 void displayUsage();
 
 // display.c
+void printIcmpHdr(struct icmphdr const *icmpHdr);
 void displayPingStat(t_pingStat const *ps, char const *addr, uint64_t deadline);
 void displayRtt(t_response const *resp,
                 t_env const *e,

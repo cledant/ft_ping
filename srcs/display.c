@@ -9,12 +9,25 @@ calcMdev(double sum2, double sum, double n)
 }
 
 void
+printIcmpHdr(struct icmphdr const *icmpHdr)
+{
+    printf("===ICMP HEADER VALUES===\n\tType: %u\n\tCode: %u\n\tPid: "
+           "%u\n\tSequence: %u\n\tChecksum: %u\n----------\n",
+           icmpHdr->type,
+           icmpHdr->code,
+           swapUint16(icmpHdr->un.echo.id),
+           swapUint16(icmpHdr->un.echo.sequence),
+           icmpHdr->checksum);
+}
+
+void
 displayPingStat(t_pingStat const *ps, char const *addr, uint64_t deadline)
 {
     double packetLoss = (1.0 - (ps->nbrRecv / (double)(ps->nbrSent))) * 100.0;
     double avg = ps->sum / (double)ps->nbrRecv;
     double mdev = calcMdev(ps->sum2, ps->sum, ps->nbrRecv);
 
+    //TODO DISPLAY DUPLICATED AND CORRUPTED STAT
     printf("\n--- %s ping statistics ---\n", addr);
     if (!ps->nbrError) {
         printf("%lu packets transmitted, %lu received, %.4g%% packet loss, "
