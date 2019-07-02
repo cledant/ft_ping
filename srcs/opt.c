@@ -117,14 +117,18 @@ parseOptions(t_option *opt, int32_t argc, char const **argv)
         }
         i += parseArg(opt, argv[i], nextPtr);
     }
+    if (argv[argc - 1][0] == '-') {
+        opt->displayUsage = 1;
+        return;
+    }
     opt->toPing = argv[argc - 1];
 }
 
 void
 displayUsage()
 {
-    printf("Usage: ft_ping [-vhqnDf] [-s packetsize] [-t ttl] destination [-w "
-           "deadline]\n");
+    printf("Usage: ft_ping [-vhqnDf] [-s packetsize] [-t ttl] [-w deadline] "
+           "destination\n");
     printf("\t-v : Display packet errors\n");
     printf("\t-h : Display usage\n");
     printf("\t-q : Quiet output\n");
