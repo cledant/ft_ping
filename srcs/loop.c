@@ -2,14 +2,11 @@
 #include <linux/icmp.h>
 
 static inline uint8_t
-checkIcmpHdrChecksum(t_response *resp,
+checkIcmpHdrChecksum(struct icmphdr *icmpHdr,
                      uint8_t verbose,
                      uint8_t quiet,
                      int64_t recvBytes)
 {
-    struct icmphdr *icmpHdr =
-      (struct icmphdr *)(resp->iovecBuff + sizeof(struct iphdr));
-
     uint16_t recvChecksum = icmpHdr->checksum;
     icmpHdr->checksum = 0;
     icmpHdr->checksum =
@@ -27,13 +24,11 @@ checkIcmpHdrChecksum(t_response *resp,
 }
 
 static inline uint8_t
-checkIpHdrChecksum(t_response *resp,
+checkIpHdrChecksum(struct iphdr *ipHdr,
                    uint8_t verbose,
                    uint8_t quiet,
                    int64_t recvBytes)
 {
-    struct iphdr *ipHdr = (struct iphdr *)resp->iovecBuff;
-
     uint16_t recvChecksum = ipHdr->check;
     ipHdr->check = 0;
     ipHdr->check = computeChecksum((uint16_t *)ipHdr, recvBytes);
@@ -50,36 +45,26 @@ checkIpHdrChecksum(t_response *resp,
 }
 
 static inline uint8_t
-processResponse(t_response *resp,
-                t_env const *e,
-                int64_t recvBytes,
-                t_pingStat *ps)
+validateIcmpPacket(t_env const *e,
+                   t_pingStat *ps,
+                   int64_t recvBytes,
+                   uint8_t *ipPacketBuff)
 {
-    if (recvBytes < 0) {
-        if (e->opt.verbose && !e->opt.quiet) {
-            printf("ft_ping: recvmsg : Network is unreachable\n");
-        }
-        return (0);
-    } else if (recvBytes >= 0 && recvBytes < MIN_PACKET_SIZE) {
-        if (e->opt.verbose && !e->opt.quiet) {
-            printf("ft_ping: Invalid packet size : %ld reception from %s\n",
-                   recvBytes,
-                   e->opt.toPing);
-        }
-        ++ps->nbrError;
-        return (0);
-    }
-
     struct icmphdr *icmpHdr =
-      (struct icmphdr *)(resp->iovecBuff + sizeof(struct iphdr));
+      (struct icmphdr *)(ipPacketBuff + sizeof(struct iphdr));
+
     if (e->opt.verbose && !e->opt.quiet) {
-        printIcmpHdr(icmpHdr);
+        printIcmpHdr((struct icmphdr *)(ipPacketBuff + sizeof(struct iphdr)));
     }
-    if (checkIpHdrChecksum(resp, e->opt.verbose, e->opt.quiet, recvBytes)) {
+    if (checkIpHdrChecksum((struct iphdr *)ipPacketBuff,
+                           e->opt.verbose,
+                           e->opt.quiet,
+                           recvBytes)) {
         ++ps->nbrCorrupted;
         return (0);
     }
-    if (checkIcmpHdrChecksum(resp, e->opt.verbose, e->opt.quiet, recvBytes)) {
+    if (checkIcmpHdrChecksum(
+          icmpHdr, e->opt.verbose, e->opt.quiet, recvBytes)) {
         ++ps->nbrCorrupted;
         return (0);
     }
@@ -103,8 +88,31 @@ processResponse(t_response *resp,
         return (1);
     }
     ++ps->nbrRecv;
-    displayRtt(resp, e, recvBytes, ps);
+    displayRtt((struct iphdr *)ipPacketBuff, e, recvBytes, ps);
     return (0);
+}
+
+static inline uint8_t
+processResponse(t_response *resp,
+                t_env const *e,
+                int64_t recvBytes,
+                t_pingStat *ps)
+{
+    if (recvBytes < 0) {
+        if (e->opt.verbose && !e->opt.quiet) {
+            printf("ft_ping: recvmsg : Network is unreachable\n");
+        }
+        return (0);
+    } else if (recvBytes >= 0 && recvBytes < MIN_PACKET_SIZE) {
+        if (e->opt.verbose && !e->opt.quiet) {
+            printf("ft_ping: Invalid packet size : %ld reception from %s\n",
+                   recvBytes,
+                   e->opt.toPing);
+        }
+        ++ps->nbrError;
+        return (0);
+    }
+    return (validateIcmpPacket(e, ps, recvBytes, (uint8_t *)resp->iovecBuff));
 }
 
 static inline void
@@ -117,6 +125,29 @@ displayWhoIsPing(t_env const *e)
            e->packetSize);
     if (e->opt.flood && !e->opt.quiet) {
         write(1, &("."), 1);
+    }
+}
+
+static inline void
+checkSendError(t_env const *e,
+               int64_t sendBytes,
+               uint8_t *shouldRecv,
+               t_pingStat *ps)
+{
+    if (sendBytes < 0) {
+        if (!e->opt.quiet) {
+            printf("ft_ping: sendto: Network is unreachable\n");
+        }
+        *shouldRecv = 0;
+    }
+    if (sendBytes >= 0 && (sendBytes != e->packetSize)) {
+        if (e->opt.verbose && !e->opt.quiet) {
+            printf("ft_ping: Invalid size sent. Sent %ld bytes. Should have "
+                   "sent %u bytes\n",
+                   sendBytes,
+                   e->packetSize);
+        }
+        ++ps->nbrError;
     }
 }
 
@@ -137,28 +168,6 @@ calcAndStatRtt(t_pingStat *ps)
     ps->sum += rtt;
     ps->sum2 += rtt * rtt;
     return (rtt);
-}
-
-inline uint64_t
-convertTime(struct timeval const *ts)
-{
-    return (ts->tv_sec * SEC_IN_US + ts->tv_usec);
-}
-
-void
-stopLoop(int32_t sig)
-{
-    (void)sig;
-    g_loopControl.loop = 0;
-    g_loopControl.wait = 0;
-}
-
-void
-stopWait(int32_t sig)
-{
-    (void)sig;
-    g_loopControl.wait = 0;
-    signal(SIGALRM, stopWait);
 }
 
 void
@@ -189,22 +198,7 @@ loop(t_env const *e, uint64_t startTime)
                                    0,
                                    e->dest.addrDest->ai_addr,
                                    e->dest.addrDest->ai_addrlen);
-        if (sendBytes < 0) {
-            if (!e->opt.quiet) {
-                printf("ft_ping: sendto: Network is unreachable\n");
-            }
-            shouldRecv = 0;
-        }
-        if (sendBytes >= 0 && (sendBytes != e->packetSize)) {
-            if (e->opt.verbose && !e->opt.quiet) {
-                printf(
-                  "ft_ping: Invalid size sent. Sent %ld bytes. Should have "
-                  "sent %u bytes\n",
-                  sendBytes,
-                  e->packetSize);
-            }
-            ++ps.nbrError;
-        }
+        checkSendError(e, sendBytes, &shouldRecv, &ps);
         ++ps.nbrSent;
         if (shouldRecv) {
             while (1) {

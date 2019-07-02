@@ -101,10 +101,16 @@ int32_t initSocket(t_option const *opt);
 
 // loop.c
 double calcAndStatRtt(t_pingStat *ps);
-uint64_t convertTime(struct timeval const *ts);
+void loop(t_env const *e, uint64_t startTime);
+
+// signal.c
 void stopLoop(int32_t sig);
 void stopWait(int32_t sig);
-void loop(t_env const *e, uint64_t startTime);
+
+// utility.c
+uint64_t convertTime(struct timeval const *ts);
+uint16_t swapUint16(uint16_t val);
+uint16_t computeChecksum(uint16_t const *ptr, uint16_t packetSize);
 
 // headers.c
 void setHdr(uint8_t *buff,
@@ -112,8 +118,6 @@ void setHdr(uint8_t *buff,
             t_dest const *dest,
             uint64_t seq);
 void setupRespBuffer(t_response *resp);
-uint16_t computeChecksum(uint16_t const *ptr, uint16_t packetSize);
-uint16_t swapUint16(uint16_t val);
 
 // opt.c
 void parseOptions(t_option *opt, int32_t argc, char const **argv);
@@ -122,7 +126,7 @@ void displayUsage();
 // display.c
 void printIcmpHdr(struct icmphdr const *icmpHdr);
 void displayPingStat(t_pingStat const *ps, char const *addr, uint64_t deadline);
-void displayRtt(t_response const *resp,
+void displayRtt(struct iphdr const *ipHdr,
                 t_env const *e,
                 int64_t recvBytes,
                 t_pingStat *ps);

@@ -27,24 +27,20 @@ displayPingStat(t_pingStat const *ps, char const *addr, uint64_t deadline)
     double avg = ps->sum / (double)ps->nbrRecv;
     double mdev = calcMdev(ps->sum2, ps->sum, ps->nbrRecv);
 
-    //TODO DISPLAY DUPLICATED AND CORRUPTED STAT
     printf("\n--- %s ping statistics ---\n", addr);
-    if (!ps->nbrError) {
-        printf("%lu packets transmitted, %lu received, %.4g%% packet loss, "
-               "time %lums\n",
-               ps->nbrSent,
-               ps->nbrRecv,
-               packetLoss,
-               ps->totalTime / SEC_IN_MS);
-    } else {
-        printf("%lu packets transmitted, %lu received, +%lu errors, %.4g%% "
-               "packet loss, time %lums\n",
-               ps->nbrSent,
-               ps->nbrRecv,
-               ps->nbrError,
-               packetLoss,
-               ps->totalTime / SEC_IN_MS);
+    printf("%lu packets transmitted, %lu received, ", ps->nbrSent, ps->nbrRecv);
+    if (ps->nbrDuplicated) {
+        printf("+%lu duplicates, ", ps->nbrDuplicated);
     }
+    if (ps->nbrCorrupted) {
+        printf("+%lu corrupted, ", ps->nbrCorrupted);
+    }
+    if (ps->nbrError) {
+        printf("+%lu errors, ", ps->nbrError);
+    }
+    printf("%.4g%% packet loss, time %lums\n",
+           packetLoss,
+           ps->totalTime / SEC_IN_MS);
     if (ps->nbrRecv) {
         printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms",
                ps->rttMin,
@@ -64,7 +60,7 @@ displayPingStat(t_pingStat const *ps, char const *addr, uint64_t deadline)
 }
 
 void
-displayRtt(t_response const *resp,
+displayRtt(struct iphdr const *ipHdr,
            t_env const *e,
            int64_t recvBytes,
            t_pingStat *ps)
@@ -79,18 +75,15 @@ displayRtt(t_response const *resp,
         gettimeofday(&ts, NULL);
         printf("[%lu.%06lu] ", ts.tv_sec, ts.tv_usec);
     }
-    printf("%ld bytes from", recvBytes - sizeof(struct iphdr));
+    printf("%lu bytes from", recvBytes - sizeof(struct iphdr));
     if (e->dest.dispFqdn) {
         printf(" %s (%s): imcp_seq=%lu ttl=%u",
                e->dest.fqdn,
                e->dest.ip,
                ps->nbrSent,
-               ((struct iphdr *)resp->iovecBuff)->ttl);
+               ipHdr->ttl);
     } else {
-        printf(" %s: imcp_seq=%lu ttl=%u",
-               e->dest.ip,
-               ps->nbrSent,
-               ((struct iphdr *)resp->iovecBuff)->ttl);
+        printf(" %s: imcp_seq=%lu ttl=%u", e->dest.ip, ps->nbrSent, ipHdr->ttl);
     }
     if (e->opt.icmpMsgSize >= 16) {
         if (rtt > 100) {
