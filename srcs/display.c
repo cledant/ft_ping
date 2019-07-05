@@ -75,7 +75,7 @@ displayRtt(struct iphdr const *ipHdr,
         gettimeofday(&ts, NULL);
         printf("[%lu.%06lu] ", ts.tv_sec, ts.tv_usec);
     }
-    printf("%lu bytes from", recvBytes - sizeof(struct iphdr));
+    printf("%ld bytes from", (int64_t)(recvBytes - sizeof(struct iphdr)));
     if (e->dest.dispFqdn) {
         printf(" %s (%s): imcp_seq=%lu ttl=%u",
                e->dest.fqdn,
