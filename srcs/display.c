@@ -72,13 +72,13 @@ displayRtt(struct iphdr const *ipHdr,
     }
     printf("%ld bytes from", (int64_t)(recvBytes - sizeof(struct iphdr)));
     if (e->dest.dispFqdn) {
-        printf(" %s (%s): imcp_seq=%lu ttl=%u",
+        printf(" %s (%s): icmp_seq=%lu ttl=%u",
                e->dest.fqdn,
                e->dest.ip,
                ps->nbrSent,
                ipHdr->ttl);
     } else {
-        printf(" %s: imcp_seq=%lu ttl=%u", e->dest.ip, ps->nbrSent, ipHdr->ttl);
+        printf(" %s: icmp_seq=%lu ttl=%u", e->dest.ip, ps->nbrSent, ipHdr->ttl);
     }
     if (e->opt.icmpMsgSize >= 16) {
         if (rtt > 100) {
