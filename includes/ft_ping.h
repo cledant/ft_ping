@@ -39,6 +39,7 @@ typedef struct s_pingStat
     double sum;
     double sum2;
     uint64_t totalTime;
+    uint64_t theoricTotalTime;
     uint64_t startTime;
     struct timeval currSendTs;
     struct timeval currRecvTs;
@@ -94,9 +95,14 @@ typedef struct s_loopControl
 t_loopControl g_loopControl;
 
 // init_network.c
-uint8_t getValidIp(struct addrinfo const *list, struct addrinfo **dest);
-struct addrinfo *resolveAddr(char const *addr);
-uint8_t getFqdn(char *fqdn, uint64_t fqdnSize, struct addrinfo const *addr);
+uint8_t getValidIp(struct addrinfo const *list,
+                   struct addrinfo **dest,
+                   uint8_t verbose);
+struct addrinfo *resolveAddr(char const *addr, uint8_t verbose);
+uint8_t reverseResolveDest(char *fqdn,
+                           uint64_t size,
+                           struct addrinfo const *addr,
+                           uint8_t verbose);
 int32_t initSocket(t_option const *opt);
 
 // loop.c
@@ -125,7 +131,7 @@ void displayUsage();
 
 // display.c
 void printIcmpHdr(struct icmphdr const *icmpHdr);
-void displayPingStat(t_pingStat const *ps, char const *addr, uint64_t deadline);
+void displayPingStat(t_pingStat const *ps, char const *addr);
 void displayRtt(struct iphdr const *ipHdr,
                 t_env const *e,
                 int64_t recvBytes,

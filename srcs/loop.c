@@ -15,6 +15,7 @@ checkIcmpHdrChecksum(struct icmphdr *icmpHdr,
         return (0);
     }
     if (verbose && !quiet) {
+        printIcmpHdr(icmpHdr);
         printf("ft_ping : invalid icmpHdr checksum\n");
         printf("Received icmp checksum: %u | Calculated: %u\n",
                recvChecksum,
@@ -36,6 +37,7 @@ checkIpHdrChecksum(struct iphdr *ipHdr,
         return (0);
     }
     if (verbose && !quiet) {
+        printIcmpHdr((struct icmphdr *)(ipHdr + sizeof(struct iphdr)));
         printf("ft_ping : invalid ipHdr checksum\n");
         printf("Received ip checksum: %u | Calculated: %u\n",
                recvChecksum,
@@ -53,9 +55,6 @@ validateIcmpPacket(t_env const *e,
     struct icmphdr *icmpHdr =
       (struct icmphdr *)(ipPacketBuff + sizeof(struct iphdr));
 
-    if (e->opt.verbose && !e->opt.quiet) {
-        printIcmpHdr((struct icmphdr *)(ipPacketBuff + sizeof(struct iphdr)));
-    }
     if (checkIpHdrChecksum((struct iphdr *)ipPacketBuff,
                            e->opt.verbose,
                            e->opt.quiet,
@@ -70,18 +69,24 @@ validateIcmpPacket(t_env const *e,
     }
     if (icmpHdr->type != ICMP_ECHOREPLY) {
         if (e->opt.verbose && !e->opt.quiet) {
+            printIcmpHdr(
+              (struct icmphdr *)(ipPacketBuff + sizeof(struct iphdr)));
             printf("ft_ping : not a echo reply\n");
         }
         return (1);
     }
     if (swapUint16(icmpHdr->un.echo.id) != getpid()) {
         if (e->opt.verbose && !e->opt.quiet) {
+            printIcmpHdr(
+              (struct icmphdr *)(ipPacketBuff + sizeof(struct iphdr)));
             printf("ft_ping : invalid pid\n");
         }
         return (1);
     }
     if (swapUint16(icmpHdr->un.echo.sequence) < (ps->nbrSent - 1)) {
         if (e->opt.verbose && !e->opt.quiet) {
+            printIcmpHdr(
+              (struct icmphdr *)(ipPacketBuff + sizeof(struct iphdr)));
             printf("ft_ping : duplicated packet\n");
         }
         ++ps->nbrDuplicated;
@@ -181,15 +186,19 @@ loop(t_env const *e, uint64_t startTime)
     setupRespBuffer(&resp);
     displayWhoIsPing(e);
     while (g_loopControl.loop) {
+        int64_t recvBytes = 0;
         uint8_t shouldRecv = 1;
         uint64_t loopTime =
           (convertTime(&ps.currTotalTs) - convertTime(&ps.currSendTs));
 
         if (e->opt.deadline && (ps.totalTime + loopTime) > e->opt.deadline) {
-            displayPingStat(&ps, e->opt.toPing, e->opt.deadline);
+            displayPingStat(&ps, e->opt.toPing);
             return;
         }
         ps.totalTime += loopTime;
+        if (ps.nbrSent) {
+            ps.theoricTotalTime += SEC_IN_US;
+        }
         setHdr(packet, &e->opt, &e->dest, ps.nbrSent);
         gettimeofday(&ps.currSendTs, NULL);
         int64_t sendBytes = sendto(e->socket,
@@ -202,19 +211,19 @@ loop(t_env const *e, uint64_t startTime)
         ++ps.nbrSent;
         if (shouldRecv) {
             while (1) {
-                int64_t recvBytes = recvmsg(e->socket, &resp.msgHdr, 0);
+                recvBytes = recvmsg(e->socket, &resp.msgHdr, 0);
                 gettimeofday(&ps.currRecvTs, NULL);
                 if (!processResponse(&resp, e, recvBytes, &ps))
                     break;
             }
         }
-        g_loopControl.wait = 1;
-        if (!e->opt.flood) {
+        if (!e->opt.flood && recvBytes >= 0) {
+            g_loopControl.wait = 1;
             alarm(TIME_INTERVAL_DEFAULT);
             while (g_loopControl.wait) {
             }
         }
         gettimeofday(&ps.currTotalTs, NULL);
     }
-    displayPingStat(&ps, e->opt.toPing, e->opt.deadline);
+    displayPingStat(&ps, e->opt.toPing);
 }

@@ -14,11 +14,11 @@ cleanEnv(t_env *e)
 static uint8_t
 resolveAddrToPing(t_env *e)
 {
-    if (!(e->resolved = resolveAddr(e->opt.toPing))) {
+    if (!(e->resolved = resolveAddr(e->opt.toPing, e->opt.verbose))) {
         printf("ft_ping: %s: Name or service not known\n", e->opt.toPing);
         return (1);
     }
-    if (getValidIp(e->resolved, &e->dest.addrDest)) {
+    if (getValidIp(e->resolved, &e->dest.addrDest, e->opt.verbose)) {
         printf("ft_ping: No valid ip for name or service\n");
         cleanEnv(e);
         return (1);
@@ -35,8 +35,8 @@ resolveAddrToPing(t_env *e)
         e->dest.dispFqdn = strcmp(e->dest.addrDest->ai_canonname, e->dest.ip);
     }
     if (e->dest.dispFqdn &&
-        getFqdn(e->dest.fqdn, NI_MAXHOST, e->dest.addrDest)) {
-        printf("ft_ping: Can't resolve Fqdn\n");
+        reverseResolveDest(
+          e->dest.fqdn, NI_MAXHOST, e->dest.addrDest, e->opt.verbose)) {
         cleanEnv(e);
         return (1);
     }
@@ -65,7 +65,7 @@ int
 main(int32_t argc, char const **argv)
 {
     t_env e = { -1, 0, NULL, { 0 }, { 0 } };
-	struct timeval start;
+    struct timeval start;
 
     if (getuid()) {
         printf("ft_ping: not enough privilege, use sudo\n");

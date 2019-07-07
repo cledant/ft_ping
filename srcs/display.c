@@ -21,11 +21,12 @@ printIcmpHdr(struct icmphdr const *icmpHdr)
 }
 
 void
-displayPingStat(t_pingStat const *ps, char const *addr, uint64_t deadline)
+displayPingStat(t_pingStat const *ps, char const *addr)
 {
     double packetLoss = (1.0 - (ps->nbrRecv / (double)(ps->nbrSent))) * 100.0;
     double avg = ps->sum / (double)ps->nbrRecv;
     double mdev = calcMdev(ps->sum2, ps->sum, ps->nbrRecv);
+    uint64_t diffTime = 0;
 
     printf("\n--- %s ping statistics ---\n", addr);
     printf("%lu packets transmitted, %lu received, ", ps->nbrSent, ps->nbrRecv);
@@ -38,23 +39,17 @@ displayPingStat(t_pingStat const *ps, char const *addr, uint64_t deadline)
     if (ps->nbrError) {
         printf("+%lu errors, ", ps->nbrError);
     }
-    printf("%.4g%% packet loss, time %lums\n",
-           packetLoss,
-           ps->totalTime / SEC_IN_MS);
+    diffTime = (ps->totalTime > ps->theoricTotalTime)
+                 ? ps->totalTime - ps->theoricTotalTime
+                 : 0;
+    printf(
+      "%.4g%% packet loss, time %lums\n", packetLoss, diffTime / SEC_IN_MS);
     if (ps->nbrRecv) {
         printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms",
                ps->rttMin,
                avg,
                ps->rttMax,
                mdev);
-    }
-    if (deadline) {
-        struct timeval end;
-
-        gettimeofday(&end, NULL);
-        double ewma = ps->totalTime / ((double)ps->nbrSent * SEC_IN_MS);
-        double ipg = (convertTime(&end) - ps->startTime) / (double)SEC_IN_US;
-        printf(", ipg/ewma %.3f/%.3f ms", ipg, ewma);
     }
     printf("\n");
 }
