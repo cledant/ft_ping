@@ -200,6 +200,7 @@ loop(t_env const *e, uint64_t startTime)
             displayPingStat(&ps, e->opt.toPing, e->opt.flood, e->packetSize);
             return;
         }
+        ps.ewma = (ps.nbrSent == 1) ? loopTime * 8 : loopTime - (ps.ewma / 8);
         ps.totalTime += loopTime;
         if (ps.nbrSent) {
             ps.theoricTotalTime += SEC_IN_US;

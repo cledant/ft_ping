@@ -7,6 +7,7 @@
 #include <linux/ip.h>
 #include <math.h>
 #include <netdb.h>
+#include <netinet/tcp.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,7 +16,6 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <netinet/tcp.h>
 
 #define TIMEOUT_DEFAULT 1
 #define TTL_DEFAULT 128
@@ -42,6 +42,7 @@ typedef struct s_pingStat
     double rttMax;
     double sum;
     double sum2;
+    double ewma;
     uint64_t totalTime;
     uint64_t theoricTotalTime;
     uint64_t startTime;
