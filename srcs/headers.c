@@ -1,5 +1,4 @@
 #include "ft_ping.h"
-#include <linux/icmp.h>
 
 static inline void
 setImcpHeader(struct icmphdr *icmpHdr, uint64_t seq, uint16_t icmpMsgSize)

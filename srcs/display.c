@@ -20,8 +20,23 @@ printIcmpHdr(struct icmphdr const *icmpHdr)
            icmpHdr->checksum);
 }
 
+static void
+displayTtlError(struct iphdr const *ipHdr, t_pingStat *ps)
+{
+    char ip[INET_ADDRSTRLEN];
+
+    if (!inet_ntop(AF_INET, &ipHdr->saddr, ip, INET_ADDRSTRLEN)) {
+        ip[0] = '\0';
+    }
+    printf("From %s icmp_seq=%lu Time to live exceeded\n", ip, ps->nbrSent);
+    ps->ttlError = 0;
+}
+
 void
-displayPingStat(t_pingStat const *ps, char const *addr)
+displayPingStat(t_pingStat const *ps,
+                char const *addr,
+                uint8_t flood,
+                uint32_t packetSize)
 {
     double packetLoss = (1.0 - (ps->nbrRecv / (double)(ps->nbrSent))) * 100.0;
     double avg = ps->sum / (double)ps->nbrRecv;
@@ -44,12 +59,23 @@ displayPingStat(t_pingStat const *ps, char const *addr)
                  : 0;
     printf(
       "%.4g%% packet loss, time %lums\n", packetLoss, diffTime / SEC_IN_MS);
-    if (ps->nbrRecv) {
+    if (ps->nbrRecv && packetSize >= 16) {
         printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms",
                ps->rttMin,
                avg,
                ps->rttMax,
                mdev);
+    }
+    if (flood) {
+        struct timeval end;
+
+        gettimeofday(&end, NULL);
+        double ewma = ps->totalTime / ((double)ps->nbrSent * SEC_IN_MS);
+        double ipg = (convertTime(&end) - ps->startTime) / (double)SEC_IN_US;
+        if (packetSize < 16) {
+            printf(", ");
+        }
+        printf("ipg/ewma %.3f/%.3f ms", ipg, ewma);
     }
     printf("\n");
 }
@@ -64,6 +90,9 @@ displayRtt(struct iphdr const *ipHdr,
 
     if (e->opt.quiet || e->opt.flood) {
         return;
+    }
+    if (ps->ttlError) {
+        return (displayTtlError(ipHdr, ps));
     }
     if (e->opt.printTs) {
         struct timeval ts;

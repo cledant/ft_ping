@@ -1,5 +1,4 @@
 #include "ft_ping.h"
-#include <linux/icmp.h>
 
 static inline uint8_t
 checkIcmpHdrChecksum(struct icmphdr *icmpHdr,
@@ -67,11 +66,17 @@ validateIcmpPacket(t_env const *e,
         ++ps->nbrCorrupted;
         return (0);
     }
-    if (icmpHdr->type != ICMP_ECHOREPLY) {
+    if (icmpHdr->type != ECHOREPLY) {
         if (e->opt.verbose && !e->opt.quiet) {
             printIcmpHdr(
               (struct icmphdr *)(ipPacketBuff + sizeof(struct iphdr)));
             printf("ft_ping : not a echo reply\n");
+        }
+        if (icmpHdr->type == TTL_ERROR) {
+            ps->ttlError = 1;
+            ++ps->nbrError;
+            displayRtt((struct iphdr *)ipPacketBuff, e, recvBytes, ps);
+            return (0);
         }
         return (1);
     }
@@ -192,7 +197,7 @@ loop(t_env const *e, uint64_t startTime)
           (convertTime(&ps.currTotalTs) - convertTime(&ps.currSendTs));
 
         if (e->opt.deadline && (ps.totalTime + loopTime) > e->opt.deadline) {
-            displayPingStat(&ps, e->opt.toPing);
+            displayPingStat(&ps, e->opt.toPing, e->opt.flood, e->packetSize);
             return;
         }
         ps.totalTime += loopTime;
@@ -225,5 +230,5 @@ loop(t_env const *e, uint64_t startTime)
         }
         gettimeofday(&ps.currTotalTs, NULL);
     }
-    displayPingStat(&ps, e->opt.toPing);
+    displayPingStat(&ps, e->opt.toPing, e->opt.flood, e->packetSize);
 }

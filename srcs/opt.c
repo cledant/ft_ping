@@ -41,7 +41,7 @@ parseInt(t_option *opt, char const *arg, uint64_t i)
         }
         opt->icmpMsgSize = val;
     } else if (i == 1) {
-        if (val < 0 || (uint64_t)val > MAX_TTL) {
+        if (val < 1 || (uint64_t)val > MAX_TTL) {
             printf("ft_ping: invalid ttl value: %d\n", val);
             opt->displayUsage = 1;
             return (1);
@@ -135,4 +135,7 @@ displayUsage()
     printf("\t-n : No name lookup for host address\n");
     printf("\t-D : Print timestamp before each line\n");
     printf("\t-f : Flood. No wait time between icmp request\n");
+    printf("\t-s : Packet size. From 0 to MTU value minus ip and imcp headers (28).\n\tMTU value is usually 1500\n");
+    printf("\t-t : Time to live value from 1 to 255\n");
+    printf("\t-w : Deadline in seconds. ft_ping exits after deadline expires\n");
 }

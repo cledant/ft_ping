@@ -15,16 +15,19 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <netinet/tcp.h>
 
 #define TIMEOUT_DEFAULT 1
 #define TTL_DEFAULT 128
+#define ECHOREPLY 0
+#define TTL_ERROR 11
 #define ICMP_MSG_SIZE_DEFAULT 56
 #define TIME_INTERVAL_DEFAULT 1
 #define SEC_IN_US 1000000
 #define SEC_IN_MS 1000
 #define NBR_OPTION 9
 #define MAX_TTL USHRT_MAX
-#define MIN_PACKET_SIZE (int64_t)(sizeof(struct icmphdr) - sizeof(struct iphdr))
+#define MIN_PACKET_SIZE (int64_t)(sizeof(struct icmphdr) + sizeof(struct iphdr))
 #define MAX_PACKET_SIZE USHRT_MAX - MIN_PACKET_SIZE
 
 typedef struct s_pingStat
@@ -34,6 +37,7 @@ typedef struct s_pingStat
     uint64_t nbrError;
     uint64_t nbrDuplicated;
     uint64_t nbrCorrupted;
+    uint8_t ttlError;
     double rttMin;
     double rttMax;
     double sum;
@@ -131,7 +135,10 @@ void displayUsage();
 
 // display.c
 void printIcmpHdr(struct icmphdr const *icmpHdr);
-void displayPingStat(t_pingStat const *ps, char const *addr);
+void displayPingStat(t_pingStat const *ps,
+                     char const *addr,
+                     uint8_t flood,
+                     uint32_t packetSize);
 void displayRtt(struct iphdr const *ipHdr,
                 t_env const *e,
                 int64_t recvBytes,
