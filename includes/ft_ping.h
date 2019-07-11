@@ -122,6 +122,14 @@ void stopWait(int32_t sig);
 uint64_t convertTime(struct timeval const *ts);
 uint16_t swapUint16(uint16_t val);
 uint16_t computeChecksum(uint16_t const *ptr, uint16_t packetSize);
+uint8_t checkIcmpHdrChecksum(struct icmphdr *icmpHdr,
+                             uint8_t verbose,
+                             uint8_t quiet,
+                             int64_t recvBytes);
+uint8_t checkIpHdrChecksum(struct iphdr *ipHdr,
+                           uint8_t verbose,
+                           uint8_t quiet,
+                           int64_t recvBytes);
 
 // headers.c
 void setHdr(uint8_t *buff,

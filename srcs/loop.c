@@ -1,51 +1,6 @@
 #include "ft_ping.h"
 
 static inline uint8_t
-checkIcmpHdrChecksum(struct icmphdr *icmpHdr,
-                     uint8_t verbose,
-                     uint8_t quiet,
-                     int64_t recvBytes)
-{
-    uint16_t recvChecksum = icmpHdr->checksum;
-    icmpHdr->checksum = 0;
-    icmpHdr->checksum =
-      computeChecksum((uint16_t *)icmpHdr, recvBytes - sizeof(struct iphdr));
-    if (icmpHdr->checksum == recvChecksum) {
-        return (0);
-    }
-    if (verbose && !quiet) {
-        printIcmpHdr(icmpHdr);
-        printf("ft_ping : invalid icmpHdr checksum\n");
-        printf("Received icmp checksum: %u | Calculated: %u\n",
-               recvChecksum,
-               icmpHdr->checksum);
-    }
-    return (1);
-}
-
-static inline uint8_t
-checkIpHdrChecksum(struct iphdr *ipHdr,
-                   uint8_t verbose,
-                   uint8_t quiet,
-                   int64_t recvBytes)
-{
-    uint16_t recvChecksum = ipHdr->check;
-    ipHdr->check = 0;
-    ipHdr->check = computeChecksum((uint16_t *)ipHdr, recvBytes);
-    if (ipHdr->check == recvChecksum) {
-        return (0);
-    }
-    if (verbose && !quiet) {
-        printIcmpHdr((struct icmphdr *)(ipHdr + sizeof(struct iphdr)));
-        printf("ft_ping : invalid ipHdr checksum\n");
-        printf("Received ip checksum: %u | Calculated: %u\n",
-               recvChecksum,
-               ipHdr->check);
-    }
-    return (1);
-}
-
-static inline uint8_t
 validateIcmpPacket(t_env const *e,
                    t_pingStat *ps,
                    int64_t recvBytes,

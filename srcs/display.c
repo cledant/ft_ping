@@ -8,6 +8,18 @@ calcMdev(double sum2, double sum, double n)
     return (sqrt(sum2 - (sum * sum)));
 }
 
+static inline void
+displayTtlError(struct iphdr const *ipHdr, t_pingStat *ps)
+{
+    char ip[INET_ADDRSTRLEN];
+
+    if (!inet_ntop(AF_INET, &ipHdr->saddr, ip, INET_ADDRSTRLEN)) {
+        ip[0] = '\0';
+    }
+    printf("From %s icmp_seq=%lu Time to live exceeded\n", ip, ps->nbrSent);
+    ps->ttlError = 0;
+}
+
 void
 printIcmpHdr(struct icmphdr const *icmpHdr)
 {
@@ -18,18 +30,6 @@ printIcmpHdr(struct icmphdr const *icmpHdr)
            swapUint16(icmpHdr->un.echo.id),
            swapUint16(icmpHdr->un.echo.sequence),
            icmpHdr->checksum);
-}
-
-static void
-displayTtlError(struct iphdr const *ipHdr, t_pingStat *ps)
-{
-    char ip[INET_ADDRSTRLEN];
-
-    if (!inet_ntop(AF_INET, &ipHdr->saddr, ip, INET_ADDRSTRLEN)) {
-        ip[0] = '\0';
-    }
-    printf("From %s icmp_seq=%lu Time to live exceeded\n", ip, ps->nbrSent);
-    ps->ttlError = 0;
 }
 
 void
