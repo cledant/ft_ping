@@ -26,7 +26,7 @@
 #define SEC_IN_US 1000000
 #define SEC_IN_MS 1000
 #define NBR_OPTION 9
-#define MAX_TTL USHRT_MAX
+#define MAX_TTL UCHAR_MAX
 #define MIN_PACKET_SIZE (int64_t)(sizeof(struct icmphdr) + sizeof(struct iphdr))
 #define MAX_PACKET_SIZE USHRT_MAX - MIN_PACKET_SIZE
 
