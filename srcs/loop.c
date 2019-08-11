@@ -28,6 +28,12 @@ validateIcmpPacket(t_env const *e,
             printf("ft_ping : not a echo reply\n");
         }
         if (icmpHdr->type == TTL_ERROR) {
+            struct iphdr const *err =
+              (struct iphdr *)(ipPacketBuff + MIN_PACKET_SIZE);
+
+            if (swapUint16(err->id) != getpid()) {
+                return (1);
+            }
             ps->ttlError = 1;
             ++ps->nbrError;
             displayRtt((struct iphdr *)ipPacketBuff, e, recvBytes, ps);
